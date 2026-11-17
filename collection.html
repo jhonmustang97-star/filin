@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121a17">
+<title>Коллекция Шайтан-Тау</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Nunito:wght@400;600;800&display=swap">
+<style>
+/* Layout: one column field journal; found residents are lit cards, unknown ones are dark "tracks" */
+:root {
+  color-scheme: dark;
+  --night: #121a17;
+  --moss: #1d2a24;
+  --bark: #2c3a33;
+  --feather: #e9dcc6;
+  --dusk: #a9b5a9;
+  --amber: #f0a43a;
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--night); color: var(--feather); font-family: var(--body); line-height: 1.45; }
+.wrap {
+  max-width: 620px; margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 20px) max(16px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 32px) max(16px, env(safe-area-inset-left));
+  display: flex; flex-direction: column; gap: 20px;
+}
+.eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--amber); }
+h1 { font-family: var(--display); font-size: clamp(28px, 8vw, 40px); line-height: 1.05; margin: 4px 0 0; text-wrap: balance; }
+.progress { display: flex; flex-direction: column; gap: 8px; }
+.progress .label { font-weight: 800; font-variant-numeric: tabular-nums; }
+.bar { height: 10px; border-radius: 6px; background: var(--bark); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--amber); border-radius: 6px; width: 0; transition: width .6s ease; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 560px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.card {
+  border-radius: 18px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 6px;
+  background: var(--moss); border: 1px solid var(--bark); color: inherit; text-decoration: none;
+}
+.card .pic { aspect-ratio: 1; border-radius: 12px; display: grid; place-items: center; font-size: 46px; background: radial-gradient(circle at 50% 35%, #2f4539, #17211c); }
+.card .name { font-family: var(--display); font-weight: 700; font-size: 16px; overflow-wrap: anywhere; }
+.card .species { font-size: 13px; color: var(--dusk); }
+.card .date { font-size: 12px; color: var(--dusk); font-variant-numeric: tabular-nums; }
+.card.found { border-color: #4a3f22; }
+.card.found .pic { background: radial-gradient(circle at 50% 35%, #4a3f22, #1e1a10); }
+.card.locked .pic { filter: grayscale(1) brightness(.35); }
+.card.locked .name { color: var(--dusk); }
+.card:focus-visible, .btn:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+.note { font-size: 13px; color: var(--dusk); margin: 0; }
+.btn { display: block; text-align: center; text-decoration: none; font: 800 17px/1 var(--body); color: #1b140a; background: var(--amber); border-radius: 16px; padding: 16px 20px; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <div class="eyebrow">Полевой дневник</div>
+    <h1>Обитатели Шайтан-Тау</h1>
+  </header>
+
+  <section class="progress" aria-label="Прогресс коллекции">
+    <div class="label" id="progress-label">Найдено 0 из 6</div>
+    <div class="bar"><i id="progress-bar"></i></div>
+  </section>
+
+  <section class="grid" id="grid" aria-label="Коллекция"></section>
+
+  <a class="btn" href="index.html">Открыть камеру</a>
+  <p class="note">Коллекция хранится в этом браузере на твоём телефоне. Новых обитателей ищи по кодам в книжке: каждый открывается своим кодом.</p>
+</main>
+
+<script>
+const STORE_KEY = 'shaitantau.collection.v1';
+const RESIDENTS = [
+  { id: 'filin',   species: 'Филин',            icon: '🦉', href: 'index.html' },
+  { id: 'orel',    species: 'Степной орёл',     icon: '🦅' },
+  { id: 'baibak',  species: 'Сурок-байбак',     icon: '🐿️' },
+  { id: 'korsak',  species: 'Корсак',           icon: '🦊' },
+  { id: 'tulip',   species: 'Тюльпан Шренка',   icon: '🌷' },
+  { id: 'kovyl',   species: 'Ковыль перистый',  icon: '🌾' }
+];
+let found = {};
+try { found = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { found = {}; }
+
+const grid = document.getElementById('grid');
+let count = 0;
+for (const r of RESIDENTS) {
+  const f = found[r.id];
+  const el = document.createElement(f && r.href ? 'a' : 'div');
+  el.className = 'card ' + (f ? 'found' : 'locked');
+  if (f && r.href) el.href = r.href;
+  const pic = document.createElement('div'); pic.className = 'pic'; pic.textContent = r.icon; pic.setAttribute('aria-hidden', 'true');
+  const name = document.createElement('div'); name.className = 'name';
+  const sp = document.createElement('div'); sp.className = 'species';
+  el.append(pic, name, sp);
+  if (f) {
+    count++;
+    name.textContent = f.name;
+    sp.textContent = r.species;
+    const d = document.createElement('div'); d.className = 'date';
+    try { d.textContent = 'найден ' + new Date(f.foundAt).toLocaleDateString('ru-RU'); } catch (e) { d.textContent = ''; }
+    el.append(d);
+  } else {
+    name.textContent = '???';
+    sp.textContent = 'ещё не найден';
+  }
+  grid.append(el);
+}
+document.getElementById('progress-label').textContent = 'Найдено ' + count + ' из ' + RESIDENTS.length;
+requestAnimationFrame(() => { document.getElementById('progress-bar').style.width = (count / RESIDENTS.length * 100) + '%'; });
+</script>
+</body>
+</html>
