@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121a17">
+<title>Филин в комнате</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Nunito:wght@400;600;800&display=swap">
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+/* Layout: one column, stage on top with the "place in room" action, field card below. Single dark theme (owl = night). */
+:root {
+  color-scheme: dark;
+  --night: #121a17;
+  --moss: #1d2a24;
+  --bark: #2c3a33;
+  --feather: #e9dcc6;
+  --dusk: #a9b5a9;
+  --amber: #f0a43a;
+  --glass: rgba(18, 26, 23, .8);
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--night); color: var(--feather); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+.wrap {
+  max-width: 560px; margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 12px) max(16px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 32px) max(16px, env(safe-area-inset-left));
+  display: flex; flex-direction: column; gap: 16px;
+}
+.eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--amber); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(28px, 8.5vw, 42px); line-height: 1.05; margin: 2px 0 0; overflow-wrap: anywhere; }
+.latin { color: var(--dusk); font-style: italic; margin-top: 4px; }
+
+.stage {
+  position: relative; border-radius: 24px; overflow: hidden;
+  background: radial-gradient(120% 80% at 50% 10%, #2a3d33 0%, var(--night) 70%);
+  border: 1px solid var(--bark); aspect-ratio: 4 / 5; max-width: 100%; max-height: 64vh; width: 100%;
+}
+model-viewer { width: 100%; height: 100%; --poster-color: transparent; --progress-bar-color: var(--amber); }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--dusk); font-weight: 600; }
+
+/* place-in-room button lives inside model-viewer (slot), so it also shows in AR on Android */
+#ar-btn {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+  font: 800 17px/1 var(--body); color: #1b140a; background: var(--amber);
+  border: 0; border-radius: 999px; padding: 15px 22px; white-space: nowrap; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0,0,0,.35);
+}
+#ar-btn.pulse { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(240,164,58,.55); } 50% { box-shadow: 0 0 0 14px rgba(240,164,58,0); } }
+#ar-btn:focus-visible { outline: 3px solid var(--feather); outline-offset: 3px; }
+.tag {
+  position: absolute; left: 12px; top: 12px; max-width: calc(100% - 24px);
+  background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--bark); border-radius: 14px; padding: 8px 12px; font-size: 14px; pointer-events: none;
+}
+.tag b { display: block; font-family: var(--display); font-size: 15px; overflow-wrap: anywhere; }
+.tag span { color: var(--amber); font-weight: 800; }
+/* in AR (Android WebXR) put the label above the system UI */
+model-viewer[ar-status="session-started"] .tag { top: calc(env(safe-area-inset-top) + 16px); }
+model-viewer[ar-status="session-started"] #ar-btn { display: none; }
+
+.no-ar { color: var(--dusk); font-size: 14px; text-align: center; margin: 0; }
+.actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.actions button {
+  font: 800 15px/1.2 var(--body); color: var(--feather); background: var(--moss);
+  border: 1px solid var(--bark); border-radius: 16px; padding: 14px 12px;
+  display: flex; align-items: center; gap: 10px; cursor: pointer; text-align: left;
+  -webkit-tap-highlight-color: transparent; transition: transform .12s ease, border-color .2s ease, background .2s ease;
+}
+.actions button .ico { font-size: 22px; line-height: 1; flex: none; }
+.actions button:active { transform: scale(.97); }
+.actions button[aria-pressed="true"] { border-color: var(--amber); background: #2a2a1d; }
+.actions button:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+
+.card { background: var(--moss); border: 1px solid var(--bark); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.card h2 { font-family: var(--display); font-weight: 500; font-size: 18px; margin: 0; }
+.card p { margin: 0; max-width: 65ch; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.stat { border-top: 1px solid var(--bark); padding-top: 8px; min-width: 0; }
+.stat dt { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--dusk); }
+.stat dd { margin: 2px 0 0; font-weight: 800; font-size: 18px; }
+.fact { border-radius: 14px; padding: 12px 14px; background: #2a2a1d; border: 1px solid #4a3f22; }
+.fact b { color: var(--amber); }
+.badge { align-self: flex-start; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #ffb3a1; border: 1px solid #6b3a30; border-radius: 999px; padding: 4px 10px; }
+.links { display: flex; gap: 10px; flex-wrap: wrap; }
+.links a { flex: 1; text-align: center; text-decoration: none; color: var(--feather); border: 1px solid var(--bark); border-radius: 14px; padding: 13px 12px; font-weight: 800; }
+/* first meeting: name the owl */
+#namer-bg { position: fixed; inset: 0; z-index: 50; background: rgba(8, 12, 10, .72); display: none; align-items: flex-end; justify-content: center; }
+#namer {
+  width: 100%; max-width: 560px; background: var(--moss); border: 1px solid var(--bark); border-bottom: 0; border-radius: 24px 24px 0 0;
+  padding: 22px max(18px, env(safe-area-inset-right)) calc(22px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+  display: flex; flex-direction: column; gap: 12px; animation: up .4s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes up { from { transform: translateY(100%); } to { transform: none; } }
+#namer h2 { font-family: var(--display); font-size: 22px; margin: 0; line-height: 1.15; }
+#namer p { margin: 0; color: var(--dusk); line-height: 1.4; }
+#namer input { font: 700 18px var(--body); color: var(--feather); background: var(--night); border: 1px solid var(--bark); border-radius: 14px; padding: 14px 16px; width: 100%; }
+#namer input:focus { outline: 2px solid var(--amber); border-color: transparent; }
+#namer button { font: 800 17px/1 var(--body); color: #1b140a; background: var(--amber); border: 0; border-radius: 16px; padding: 16px 20px; cursor: pointer; }
+#namer button:focus-visible { outline: 3px solid var(--feather); outline-offset: 3px; }
+.toast { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top) + 14px); background: var(--glass); border: 1px solid var(--amber); color: var(--amber); border-radius: 999px; padding: 10px 16px; font-weight: 800; transition: opacity .4s; max-width: calc(100% - 32px); text-align: center; }
+.toast.fade { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .actions button { transition: none; } #ar-btn.pulse { animation: none; } #namer { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Житель Шайтан-Тау</div>
+    <h1 id="title">Филин</h1>
+    <div class="latin" id="latin">Bubo bubo</div>
+  </header>
+
+  <div class="stage">
+    <model-viewer id="mv" alt="3D-модель филина на ветке"
+      camera-controls touch-action="pan-y" autoplay animation-name="Idle" animation-crossfade-duration="350"
+      camera-orbit="18deg 78deg 4.2m" min-camera-orbit="auto 20deg 2.6m" max-camera-orbit="auto 100deg 6.5m"
+      camera-target="0m 0.8m 0m" scale="1.3 1.3 1.3" field-of-view="32deg"
+      shadow-intensity="1" shadow-softness="0.8" exposure="1.05" environment-image="neutral"
+      interaction-prompt="none"
+      ar ar-modes="webxr quick-look" ar-placement="floor" ar-scale="auto">
+      <div class="loading" slot="poster">Филин прилетает…</div>
+      <div class="tag" id="tag"><b id="tag-name">Филин</b><span id="doing">сидит на ветке</span></div>
+      <button id="ar-btn" slot="ar-button" type="button">Поставить филина · 360°</button>
+    </model-viewer>
+  </div>
+  <p class="no-ar" id="no-ar" hidden>На этом устройстве режим «в комнате» недоступен: нужен iPhone с Safari или Android с Google Chrome.</p>
+
+  <div class="actions" role="group" aria-label="Что сделает филин">
+    <button data-anim="LookAround" type="button" aria-pressed="false"><span class="ico">👀</span>Оглядеться</button>
+    <button data-anim="Flap" type="button" aria-pressed="false"><span class="ico">🪶</span>Взмахнуть крыльями</button>
+    <button data-anim="Hoot" type="button" aria-pressed="false"><span class="ico">🌙</span>Ухнуть</button>
+    <button data-anim="Shake" type="button" aria-pressed="false"><span class="ico">💨</span>Встряхнуться</button>
+  </div>
+
+  <section class="card">
+    <span class="badge">Редкий охраняемый вид</span>
+    <h2>Кто такой филин</h2>
+    <p>Самая крупная сова наших лесов и скал. Днём филин прячется в расщелинах камней и густых кронах, а ночью выходит на охоту. Летает совсем бесшумно: мягкие края перьев гасят звук взмаха.</p>
+    <dl class="stats">
+      <div class="stat"><dt>Размах крыльев</dt><dd>до 1,9 м</dd></div>
+      <div class="stat"><dt>Рост</dt><dd>60–75 см</dd></div>
+      <div class="stat"><dt>Вес</dt><dd>2–4 кг</dd></div>
+      <div class="stat"><dt>Живёт</dt><dd>до 20 лет</dd></div>
+      <div class="stat"><dt>Охотится</dt><dd>ночью</dd></div>
+      <div class="stat"><dt>Ест</dt><dd>грызунов, зайцев, птиц</dd></div>
+    </dl>
+    <div class="fact"><b>В комнате</b> филин стоит в натуральную величину. Отойди на пару шагов и обойди его вокруг. Двумя пальцами его можно уменьшить или повернуть.</div>
+    <div class="links">
+      <a href="index.html">Камера с карточкой</a>
+      <a href="collection.html">Моя коллекция</a>
+    </div>
+  </section>
+</div>
+
+<div id="namer-bg">
+  <section id="namer" aria-labelledby="namer-title">
+    <div class="eyebrow">Новый житель · Шайтан-Тау</div>
+    <h2 id="namer-title">Ты нашёл филина!</h2>
+    <p>Придумай ему имя, и он поселится в твоей коллекции. Потом нажми «Поставить филина», наведи телефон на пол и обойди его вокруг.</p>
+    <input id="owl-name" type="text" maxlength="24" placeholder="Например, Ухтыш" autocomplete="off" enterkeyhint="done">
+    <button id="namer-save" type="button">Добавить в коллекцию</button>
+  </section>
+</div>
+<div class="toast fade" id="toast" aria-live="polite"></div>
+
+<script>
+const mv = document.getElementById('mv');
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+/* ---------- name from the collection ---------- */
+let owned = null;
+try { owned = (JSON.parse(localStorage.getItem('shaitantau.collection.v1')) || {}).filin || null; } catch (e) { owned = null; }
+function showName() {
+  if (!owned) return;
+  document.getElementById('title').textContent = owned.name;
+  document.getElementById('latin').textContent = 'Филин · Bubo bubo';
+  document.getElementById('tag-name').textContent = owned.name;
+}
+showName();
+
+/* ---------- first meeting: name it and add to the collection ---------- */
+const namerBg = document.getElementById('namer-bg');
+if (!owned) namerBg.style.display = 'flex';
+function commitName() {
+  const name = document.getElementById('owl-name').value.trim() || 'Филин';
+  const all = (() => { try { return JSON.parse(localStorage.getItem('shaitantau.collection.v1')) || {}; } catch (e) { return {}; } })();
+  owned = all.filin = { name, species: 'Филин', foundAt: new Date().toISOString() };
+  try { localStorage.setItem('shaitantau.collection.v1', JSON.stringify(all)); } catch (e) { /* storage blocked: name kept for this visit */ }
+  showName();
+  namerBg.style.display = 'none';
+  document.getElementById('owl-name').blur();
+  const t = document.getElementById('toast');
+  t.textContent = '«' + name + '» теперь в твоей коллекции';
+  t.classList.remove('fade');
+  setTimeout(() => t.classList.add('fade'), 2800);
+  document.getElementById('ar-btn').classList.add('pulse');
+}
+document.getElementById('namer-save').addEventListener('click', commitName);
+document.getElementById('owl-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') commitName(); });
+
+/* ---------- models are stored as base64 text so the site is plain text files ---------- */
+async function blobFromText(urls, type) {
+  const parts = await Promise.all(urls.map((u) => fetch(u).then((r) => { if (!r.ok) throw new Error(u); return r.text(); })));
+  const bin = atob(parts.join('').replace(/\s+/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return URL.createObjectURL(new Blob([bytes], { type }));
+}
+blobFromText(['owl.b64.txt'], 'model/gltf-binary').then((u) => { mv.src = u; });
+if (isIOS) {
+  // iPhone AR (Quick Look) uses its own USDZ file with one long "life" animation
+  blobFromText(['owl-ios-1.txt', 'owl-ios-2.txt'], 'model/vnd.usdz+zip').then((u) => { mv.setAttribute('ios-src', u); });
+}
+
+/* ---------- place in room ---------- */
+const arBtn = document.getElementById('ar-btn');
+if (new URLSearchParams(location.search).get('ar') === '1') arBtn.classList.add('pulse');
+mv.addEventListener('load', () => {
+  if (!mv.canActivateAR) document.getElementById('no-ar').hidden = false;
+});
+
+/* ---------- autonomous behaviour (also runs inside Android AR) ---------- */
+const LABELS = { Idle: 'сидит на ветке', Shift: 'переминается', LookAround: 'оглядывается', Flap: 'машет крыльями', Hoot: 'ухает', Shake: 'встряхивается' };
+const ACTIONS = [['Shift', 30], ['LookAround', 30], ['Flap', 15], ['Hoot', 15], ['Shake', 10]];
+const buttons = [...document.querySelectorAll('.actions button')];
+let busy = false, last = null, timer = null;
+
+function setPressed(name) { buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.anim === name))); }
+function label(name) { document.getElementById('doing').textContent = LABELS[name] || LABELS.Idle; }
+function pick() {
+  const pool = ACTIONS.filter(([n]) => n !== last);
+  let r = Math.random() * pool.reduce((s, [, w]) => s + w, 0);
+  for (const [n, w] of pool) { if ((r -= w) <= 0) return n; }
+  return pool[0][0];
+}
+function schedule() { clearTimeout(timer); timer = setTimeout(() => perform(pick()), 4000 + Math.random() * 5000); }
+function perform(name) {
+  if (busy) return;
+  busy = true; last = name;
+  clearTimeout(timer);
+  mv.animationName = name;
+  mv.currentTime = 0;
+  mv.play({ repetitions: 1 });
+  label(name);
+}
+function backToIdle() {
+  mv.animationName = 'Idle';
+  mv.play();
+  setPressed(null); label('Idle');
+  busy = false;
+  schedule();
+}
+buttons.forEach((b) => b.addEventListener('click', () => {
+  if (busy) return;
+  setPressed(b.dataset.anim);
+  perform(b.dataset.anim);
+}));
+mv.addEventListener('finished', backToIdle);
+mv.addEventListener('load', () => { mv.animationName = 'Idle'; mv.play(); schedule(); });
+</script>
+</body>
+</html>
