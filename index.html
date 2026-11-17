@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Nunito:wght@400;600;800&display=swap">
 <style>
 :root {
-  color-scheme: dark;
   --night: #121a17;
   --moss: #1d2a24;
   --bark: #2c3a33;
@@ -21,38 +20,21 @@
   --body: "Nunito", "Segoe UI", system-ui, sans-serif;
 }
 *, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; overflow: hidden; background: var(--night); color: var(--feather); font-family: var(--body); }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #000; color: var(--feather); font-family: var(--body); }
 button { font-family: var(--body); }
+#camerafeed { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 
-/* ---------- loading / error ---------- */
-#boot {
-  position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
-  padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
-  background: radial-gradient(120% 70% at 50% 0%, #2a3d33 0%, var(--night) 65%); text-align: center;
-}
-#boot h1 { font-family: var(--display); font-size: clamp(30px, 10vw, 46px); margin: 0; }
-#boot p { margin: 0; max-width: 34ch; line-height: 1.45; color: var(--dusk); }
-#boot .err { color: #ffcabd; }
-.btn { font: 800 17px/1 var(--body); color: #1b140a; background: var(--amber); border: 0; border-radius: 16px; padding: 16px 22px; cursor: pointer; }
-.btn.ghost { background: transparent; color: var(--feather); border: 1px solid var(--bark); }
-.btn:focus-visible, .chip:focus-visible { outline: 3px solid var(--feather); outline-offset: 3px; }
-.link { color: var(--dusk); font-weight: 700; }
-.spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--bark); border-top-color: var(--amber); animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ---------- AR overlay ---------- */
-#ar-root { position: fixed; inset: 0; }
+/* ---------- overlay ---------- */
 .top {
-  position: fixed; z-index: 15; left: 0; right: 0; top: 0;
+  position: fixed; z-index: 15; left: 0; right: 0; top: 0; pointer-events: none;
   padding: calc(env(safe-area-inset-top) + 12px) max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
-  display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; pointer-events: none;
+  display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
 }
 .chip {
   pointer-events: auto; background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--bark); border-radius: 999px; padding: 10px 16px; color: var(--feather);
-  font-weight: 700; font-size: 15px; transition: opacity .3s;
+  font-weight: 700; font-size: 15px; transition: opacity .35s; text-align: center;
 }
-.chip.amber { border-color: var(--amber); color: var(--amber); cursor: pointer; }
 .chip[hidden] { display: none; }
 .fade { opacity: 0; }
 
@@ -61,20 +43,17 @@ button { font-family: var(--body); }
   position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; display: none;
   padding: 22px max(18px, env(safe-area-inset-right)) calc(22px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
   background: var(--moss); border-top: 1px solid var(--bark); border-radius: 24px 24px 0 0;
-  box-shadow: 0 -10px 30px rgba(0,0,0,.4);
-  flex-direction: column; gap: 12px; animation: up .4s cubic-bezier(.2,.8,.2,1);
+  box-shadow: 0 -10px 30px rgba(0,0,0,.4); flex-direction: column; gap: 12px; animation: up .4s cubic-bezier(.2,.8,.2,1);
 }
 @keyframes up { from { transform: translateY(100%); } to { transform: none; } }
-#namer .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--amber); }
+.eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--amber); }
 #namer h2 { font-family: var(--display); font-size: 22px; margin: 0; line-height: 1.15; }
 #namer p { margin: 0; color: var(--dusk); line-height: 1.4; }
-#namer input {
-  font: 700 18px var(--body); color: var(--feather); background: var(--night); border: 1px solid var(--bark);
-  border-radius: 14px; padding: 14px 16px; width: 100%;
-}
+#namer input { font: 700 18px var(--body); color: var(--feather); background: var(--night); border: 1px solid var(--bark); border-radius: 14px; padding: 14px 16px; width: 100%; }
 #namer input:focus { outline: 2px solid var(--amber); border-color: transparent; }
-#namer .row { display: flex; gap: 10px; }
-#namer .row .btn { flex: 1; }
+.btn { font: 800 17px/1 var(--body); color: #1b140a; background: var(--amber); border: 0; border-radius: 16px; padding: 16px 20px; cursor: pointer; text-align: center; text-decoration: none; }
+.btn.ghost { background: transparent; color: var(--feather); border: 1px solid var(--bark); }
+.btn:focus-visible { outline: 3px solid var(--feather); outline-offset: 3px; }
 
 /* ---------- bottom sheet ---------- */
 #sheet {
@@ -82,8 +61,7 @@ button { font-family: var(--body); }
   background: var(--moss); border-top: 1px solid var(--bark); border-radius: 24px 24px 0 0;
   max-height: 78vh; display: none; flex-direction: column;
   --peek: calc(92px + env(safe-area-inset-bottom));
-  transform: translateY(calc(100% - var(--peek)));
-  transition: transform .35s cubic-bezier(.2,.8,.2,1);
+  transform: translateY(calc(100% - var(--peek))); transition: transform .35s cubic-bezier(.2,.8,.2,1);
   box-shadow: 0 -10px 30px rgba(0,0,0,.35); touch-action: none;
 }
 #sheet.open { transform: translateY(0); }
@@ -105,29 +83,18 @@ button { font-family: var(--body); }
 .fact { border-radius: 14px; padding: 12px 14px; background: #2a2a1d; border: 1px solid #4a3f22; }
 .fact b { color: var(--amber); }
 .sheet-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-.sheet-actions a { flex: 1; text-align: center; text-decoration: none; }
-
-#arjs-video { object-fit: cover; }
-.a-enter-vr, .a-orientation-modal { display: none !important; }
+.sheet-actions a { flex: 1; }
+.credit { font-size: 12px; color: var(--dusk); }
+.credit a { color: var(--dusk); }
 @media (prefers-reduced-motion: reduce) { #sheet, .chip, #sheet .chev, #namer { transition: none; animation: none; } }
 </style>
 </head>
 <body>
 
-<section id="boot">
-  <h1>Филин</h1>
-  <div class="spinner" id="boot-spin"></div>
-  <p id="boot-msg">Включаю камеру… Разреши доступ, когда браузер спросит.</p>
-  <button class="btn" id="boot-retry" type="button" hidden>Включить камеру</button>
-  <a class="link" href="room.html?ar=1">Поставить филина в комнате без карточки</a>
-</section>
-
-<div id="ar-root"></div>
+<canvas id="camerafeed"></canvas>
 
 <div class="top">
   <div class="chip" id="hint" hidden>Наведи камеру на карточку с кодом</div>
-  <button class="chip amber" id="gyro-btn" type="button" hidden>Нажми, чтобы филин не пропадал</button>
-  <a class="chip amber" id="room-btn" href="room.html?ar=1" hidden style="text-decoration:none">Закрепить в комнате</a>
 </div>
 
 <section id="namer" aria-labelledby="namer-title">
@@ -135,9 +102,7 @@ button { font-family: var(--body); }
   <h2 id="namer-title">Ты нашёл филина!</h2>
   <p>Придумай ему имя, и он навсегда поселится в твоей коллекции.</p>
   <input id="owl-name" type="text" maxlength="24" placeholder="Например, Ухтыш" autocomplete="off" enterkeyhint="done">
-  <div class="row">
-    <button class="btn" id="namer-save" type="button">Добавить в коллекцию</button>
-  </div>
+  <button class="btn" id="namer-save" type="button">Добавить в коллекцию</button>
 </section>
 
 <section id="sheet" aria-label="Карточка обитателя">
@@ -167,59 +132,54 @@ button { font-family: var(--body); }
     <div class="fact"><b>Знаешь ли ты?</b> Филин может повернуть голову почти на 270 градусов. Глаза у него неподвижные, поэтому оглядываться ему приходится всей головой. Коснись экрана, и филин отзовётся.</div>
     <div class="sheet-actions">
       <a class="btn ghost" href="collection.html">Моя коллекция</a>
-      <a class="btn ghost" href="room.html?ar=1">Закрепить в комнате без карточки</a>
     </div>
+    <p class="credit">This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
   </div>
 </section>
 
-<script src="https://cdn.jsdelivr.net/npm/aframe@1.3.0/dist/aframe-v1.3.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.5/aframe/build/aframe-ar.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1.0.0/dist/xrextras.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1.0.0/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
+<script src="owl-target.js"></script>
 <script>
+const $ = (id) => document.getElementById(id);
+
 /* ================= collection (stored on this phone) ================= */
 const STORE_KEY = 'shaitantau.collection.v1';
-const CREATURE = { id: 'filin', species: 'Филин', latin: 'Bubo bubo' };
-function readCollection() {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { return {}; }
-}
-function saveCreature(name) {
-  const all = readCollection();
-  all[CREATURE.id] = { name, species: CREATURE.species, foundAt: new Date().toISOString() };
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(all)); } catch (e) { /* storage unavailable: name lives for this visit only */ }
-  return all[CREATURE.id];
-}
-let owned = readCollection()[CREATURE.id] || null;
+function readCollection() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { return {}; } }
+let owned = readCollection().filin || null;
 function applyName() {
-  document.getElementById('sheet-title').textContent = owned ? owned.name : CREATURE.species;
-  document.getElementById('sheet-latin').textContent = owned ? CREATURE.species + ' · ' + CREATURE.latin : CREATURE.latin;
+  $('sheet-title').textContent = owned ? owned.name : 'Филин';
+  $('sheet-latin').textContent = owned ? 'Филин · Bubo bubo' : 'Bubo bubo';
 }
 applyName();
 
+/* ================= owl model (base64 text -> GLB) ================= */
+async function loadOwlBuffer() {
+  const res = await fetch('owl.b64.txt');
+  if (!res.ok) throw new Error('model ' + res.status);
+  const bin = atob((await res.text()).replace(/\s+/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes.buffer;
+}
+
 /* ================= owl behaviour ================= */
 const LABELS = { Idle: 'сидит на ветке', Shift: 'переминается', LookAround: 'оглядывается', Flap: 'машет крыльями', Hoot: 'ухает', Shake: 'встряхивается' };
-const ACTIONS = [ ['Shift', 30], ['LookAround', 30], ['Flap', 15], ['Hoot', 15], ['Shake', 10] ];
-
-AFRAME.registerComponent('owl-brain', {
-  init() {
-    this.mixer = null; this.current = null; this.last = null; this.wait = 3;
-    this.el.addEventListener('model-loaded', (e) => {
-      const model = e.detail.model;
-      model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
-      this.mixer = new THREE.AnimationMixer(model);
-      this.actions = {};
-      (model.animations || []).forEach((clip) => {
-        const a = this.mixer.clipAction(clip);
-        if (clip.name !== 'Idle') { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; }
-        this.actions[clip.name] = a;
-      });
-      this.idle = this.actions.Idle;
-      if (this.idle) this.idle.play();
-      this.mixer.addEventListener('finished', (ev) => this.toIdle(ev.action));
+const ACTIONS = [['Shift', 30], ['LookAround', 30], ['Flap', 15], ['Hoot', 15], ['Shake', 10]];
+const brain = {
+  mixer: null, actions: {}, idle: null, current: null, last: null, wait: 3,
+  init(model, clips) {
+    this.mixer = new THREE.AnimationMixer(model);
+    clips.forEach((clip) => {
+      const a = this.mixer.clipAction(clip);
+      if (clip.name !== 'Idle') { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; }
+      this.actions[clip.name] = a;
     });
-    window.addEventListener('pointerup', (e) => {
-      if (e.target.closest && e.target.closest('#sheet, #namer, .top, #boot')) return;
-      if (!this.current) this.perform(Math.random() < .5 ? 'Hoot' : 'LookAround');
-    });
-    this.el.sceneEl.addEventListener('owl-arrived', () => this.perform('Flap'));
+    this.idle = this.actions.Idle;
+    if (this.idle) this.idle.play();
+    this.mixer.addEventListener('finished', (ev) => this.toIdle(ev.action));
   },
   pick() {
     const pool = ACTIONS.filter(([n]) => n !== this.last && this.actions[n]);
@@ -228,12 +188,12 @@ AFRAME.registerComponent('owl-brain', {
     return pool[0][0];
   },
   perform(name) {
-    if (!this.actions || !this.actions[name] || this.current) return;
     const a = this.actions[name];
+    if (!a || this.current || !this.idle) return;
     this.current = a; this.last = name;
     a.reset().setEffectiveWeight(1).fadeIn(0.35).play();
     this.idle.fadeOut(0.35);
-    document.getElementById('doing').textContent = LABELS[name];
+    $('doing').textContent = LABELS[name];
   },
   toIdle(action) {
     if (action !== this.current) return;
@@ -241,194 +201,156 @@ AFRAME.registerComponent('owl-brain', {
     action.fadeOut(0.45);
     this.current = null;
     this.wait = 4 + Math.random() * 5;
-    document.getElementById('doing').textContent = LABELS.Idle;
+    $('doing').textContent = LABELS.Idle;
   },
-  tick(t, dt) {
+  update(dt, active) {
     if (!this.mixer) return;
-    const s = Math.min(dt, 100) / 1000;
-    this.mixer.update(s);
-    if (!this.current) { this.wait -= s; if (this.wait <= 0) this.perform(this.pick()); }
+    this.mixer.update(dt);
+    if (active && !this.current) { this.wait -= dt; if (this.wait <= 0) this.perform(this.pick()); }
   }
-});
+};
 
-AFRAME.registerComponent('shadow-catcher', {
-  init() {
-    const apply = () => {
-      const mesh = this.el.getObject3D('mesh'); if (!mesh) return;
-      mesh.material = new THREE.ShadowMaterial({ opacity: 0.38 }); mesh.receiveShadow = true;
-    };
-    apply(); this.el.addEventListener('object3dset', apply);
-  }
-});
+/* ================= scene module for the 8th Wall camera pipeline ================= */
+const PLACE = window.OWL_PLACE || { x: 0, y: 0, frame: 0.43 };
+const OWL_SCALE = PLACE.frame * 1.25 / 0.91;   // owl base (0.91 m in the model) a bit wider than the QR frame
+let anchor, seen = false, lastFrame = 0;
 
-/* ================= gyroscope: phone orientation as a quaternion ================= */
-const gyro = { q: null, ok: false };
-(function () {
-  const zee = new THREE.Vector3(0, 0, 1), euler = new THREE.Euler(), q0 = new THREE.Quaternion();
-  const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
-  const deg = THREE.MathUtils.DEG2RAD;
-  window.addEventListener('deviceorientation', (e) => {
-    if (e.alpha === null) return;
-    const orient = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * deg;
-    const q = gyro.q || new THREE.Quaternion();
-    euler.set(e.beta * deg, e.alpha * deg, -e.gamma * deg, 'YXZ');
-    q.setFromEuler(euler); q.multiply(q1); q.multiply(q0.setFromAxisAngle(zee, -orient));
-    gyro.q = q; gyro.ok = true;
-  });
-})();
-async function askGyro() {
-  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-    try { await DeviceOrientationEvent.requestPermission(); } catch (e) { /* user said no: owl will hold its screen position */ }
-  }
-  document.getElementById('gyro-btn').hidden = true;
-}
+function owlModule() {
+  return {
+    name: 'owl',
+    onStart: () => {
+      const { scene, camera, renderer } = XR8.Threejs.xrScene();
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-/* ================= anchor: follows the card, holds its place when the card is out of view ================= */
-AFRAME.registerComponent('owl-anchor', {
-  schema: { marker: { type: 'selector' } },
-  init() {
-    const o = this.el.object3D;
-    o.visible = false;
-    this.found = false; this.seenOnce = false;
-    this.mPos = new THREE.Vector3(); this.mQuat = new THREE.Quaternion(); this.mScale = new THREE.Vector3();
-    this.lastPos = new THREE.Vector3(); this.lastQuat = new THREE.Quaternion(); this.lastScale = new THREE.Vector3(1, 1, 1);
-    this.gyroAtLoss = new THREE.Quaternion(); this.hasGyroRef = false;
-    this.tmpQ = new THREE.Quaternion();
-    const m = this.data.marker;
-    m.addEventListener('markerFound', () => { this.found = true; });
-    m.addEventListener('markerLost', () => { this.found = false; });
-  },
-  tick() {
-    const o = this.el.object3D, marker = this.data.marker.object3D;
-    if (this.found && marker.visible) {
-      marker.updateMatrixWorld(true);
-      marker.matrixWorld.decompose(this.mPos, this.mQuat, this.mScale);
-      if (!this.seenOnce) {
-        o.position.copy(this.mPos); o.quaternion.copy(this.mQuat); o.scale.copy(this.mScale);
-        this.seenOnce = true; o.visible = true;
-        this.el.sceneEl.emit('owl-arrived');
-      } else {
-        o.visible = true;
-        o.position.lerp(this.mPos, 0.7); o.quaternion.slerp(this.mQuat, 0.7); o.scale.lerp(this.mScale, 0.7);
-      }
-      this.lastPos.copy(o.position); this.lastQuat.copy(o.quaternion); this.lastScale.copy(o.scale);
-      this.lostAt = 0;
-      if (this.away) { this.away = false; this.el.sceneEl.emit('owl-back'); }
-    } else if (this.seenOnce) {
-      // card out of view: hold still through short flickers, then step away instead of sliding with the camera
+      scene.add(new THREE.HemisphereLight(0xfff6e8, 0x5b5246, 1.0));
+
+      // anchor = the card in the world (image target pose); stays where it was when the card leaves view
+      anchor = new THREE.Group();
+      anchor.visible = false;
+      scene.add(anchor);
+
+      const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+      sun.position.set(0.5, -0.7, 2.2);          // card space: +z points up out of the card
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(1024, 1024);
+      Object.assign(sun.shadow.camera, { left: -1.2, right: 1.2, top: 1.2, bottom: -1.2, near: 0.1, far: 6 });
+      sun.shadow.bias = -0.002;
+      anchor.add(sun); anchor.add(sun.target);
+
+      const catcher = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), new THREE.ShadowMaterial({ opacity: 0.35 }));
+      catcher.position.z = 0.002;
+      catcher.receiveShadow = true;
+      anchor.add(catcher);
+
+      // the model is Y-up; stand it on the card (card normal is +z) and centre its base on the QR code
+      const stand = new THREE.Group();
+      stand.rotation.x = Math.PI / 2;
+      stand.scale.setScalar(OWL_SCALE);
+      stand.position.set(PLACE.x + 0.067 * OWL_SCALE, PLACE.y - 0.185 * OWL_SCALE, 0);
+      anchor.add(stand);
+
+      loadOwlBuffer().then((buf) => {
+        new THREE.GLTFLoader().parse(buf, '', (gltf) => {
+          gltf.scene.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+          stand.add(gltf.scene);
+          brain.init(gltf.scene, gltf.animations);
+        }, (err) => console.error(err));
+      }).catch((e) => console.error(e));
+
+      // standard 8th Wall start: camera about 3 m up, then sync the AR camera to it
+      camera.position.set(0, 3, 0);
+      XR8.XrController.updateCameraProjectionMatrix({ origin: camera.position, facing: camera.quaternion });
+
+      $('hint').hidden = false;
+      $('sheet').style.display = 'flex';
+    },
+    onUpdate: () => {
       const now = performance.now();
-      if (!this.lostAt) this.lostAt = now;
-      if (now - this.lostAt < 450) {
-        o.position.copy(this.lastPos); o.quaternion.copy(this.lastQuat); o.scale.copy(this.lastScale);
-      } else if (!this.away) {
-        o.visible = false; this.away = true;
-        this.el.sceneEl.emit('owl-away');
-      }
-    }
+      const dt = lastFrame ? Math.min((now - lastFrame) / 1000, 0.1) : 0;
+      lastFrame = now;
+      brain.update(dt, seen);
+    },
+    listeners: [
+      { event: 'reality.imagefound', process: onImage },
+      { event: 'reality.imageupdated', process: onImage },
+      { event: 'reality.imagelost', process: onImageLost },
+    ],
+  };
+}
+
+const tmpPos = new THREE.Vector3(), tmpQuat = new THREE.Quaternion();
+function onImage({ detail }) {
+  if (!anchor || detail.name !== 'owl-card') return;
+  tmpPos.set(detail.position.x, detail.position.y, detail.position.z);
+  tmpQuat.set(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w);
+  if (!seen) {
+    anchor.position.copy(tmpPos); anchor.quaternion.copy(tmpQuat); anchor.scale.setScalar(detail.scale);
+    anchor.visible = true; seen = true;
+    owlArrived();
+  } else {
+    anchor.position.lerp(tmpPos, 0.5); anchor.quaternion.slerp(tmpQuat, 0.5);
+    anchor.scale.setScalar(THREE.MathUtils.lerp(anchor.scale.x, detail.scale, 0.5));
   }
+  $('hint').classList.add('fade');
+}
+function onImageLost({ detail }) {
+  // world tracking keeps the owl where the card was: nothing to hide
+  if (detail && detail.name !== 'owl-card') return;
+}
+
+function owlArrived() {
+  brain.wait = 0.3;
+  setTimeout(() => brain.perform('Flap'), 300);
+  if (!owned) setTimeout(() => { $('namer').style.display = 'flex'; }, 2000);
+}
+
+/* tap anywhere on the camera view: the owl answers */
+window.addEventListener('pointerup', (e) => {
+  if (e.target.closest && e.target.closest('#sheet, #namer, .top')) return;
+  if (seen && !brain.current) brain.perform(Math.random() < .5 ? 'Hoot' : 'LookAround');
 });
 
-/* ================= start AR immediately ================= */
-async function loadOwlModel() {
-  const res = await fetch('owl.b64.txt');
-  if (!res.ok) throw new Error('model ' + res.status);
-  const bin = atob((await res.text()).replace(/\s+/g, ''));
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return URL.createObjectURL(new Blob([bytes], { type: 'model/gltf-binary' }));
-}
-
-const SCENE = (model) => `
-<a-scene embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false"
-  renderer="colorManagement: true; antialias: true; alpha: true; precision: mediump"
-  shadow="type: pcfsoft; autoUpdate: true"
-  arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; patternRatio: 0.70; cameraParametersUrl: https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/data/camera_para.dat; maxDetectionRate: 60; sourceWidth: 1280; sourceHeight: 960; displayWidth: 1280; displayHeight: 960">
-  <a-marker id="marker" type="pattern" url="owl.patt" emitevents="true"
-    smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="2"></a-marker>
-  <a-entity id="anchor" owl-anchor="marker: #marker">
-    <a-entity id="owl" gltf-model="url(${model})" position="0.107 0 0.296" scale="1.6 1.6 1.6" owl-brain></a-entity>
-    <a-plane rotation="-90 0 0" width="3" height="3" position="0 0.002 0" shadow-catcher></a-plane>
-    <a-entity light="type: directional; intensity: 1.1; castShadow: true; shadowMapWidth: 1024; shadowMapHeight: 1024; shadowCameraLeft: -2.6; shadowCameraRight: 2.6; shadowCameraTop: 2.6; shadowCameraBottom: -2.6; shadowCameraNear: 0.1; shadowCameraFar: 12; shadowBias: -0.002"
-      position="1.2 4.5 1.8"></a-entity>
-  </a-entity>
-  <a-entity light="type: hemisphere; color: #fff6e8; groundColor: #5b5246; intensity: 1.0"></a-entity>
-  <a-entity camera></a-entity>
-</a-scene>`;
-
-const $ = (id) => document.getElementById(id);
-const hint = $('hint'), sheet = $('sheet'), namer = $('namer');
-
-function bootError(msg) {
-  $('boot').style.display = 'flex';
-  $('boot-spin').hidden = true;
-  $('boot-msg').textContent = msg; $('boot-msg').classList.add('err');
-  $('boot-retry').hidden = false;
-}
-
-async function startAR() {
-  $('boot-retry').hidden = true; $('boot-spin').hidden = false;
-  $('boot-msg').classList.remove('err');
-  $('boot-msg').textContent = 'Включаю камеру… Разреши доступ, когда браузер спросит.';
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    bootError('Этот браузер не даёт доступ к камере. Открой ссылку в Safari или Chrome.'); return;
-  }
-  let model;
-  try {
-    const [, m] = await Promise.all([
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then((s) => s.getTracks().forEach((t) => t.stop())),
-      loadOwlModel()
-    ]);
-    model = m;
-  } catch (e) {
-    const denied = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
-    bootError(denied
-      ? 'Камера не включилась. Разреши доступ к камере в настройках браузера и нажми кнопку ниже.'
-      : 'Не получилось запустить. Проверь интернет и нажми кнопку ниже.');
-    return;
-  }
-  $('boot').style.display = 'none';
-  // AR.js draws the camera video behind the page; an opaque page background would hide it
-  document.documentElement.style.background = 'transparent';
-  document.body.style.background = 'transparent';
-  $('ar-root').innerHTML = SCENE(model);
-  hint.hidden = false; sheet.style.display = 'flex';
-  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-  }
-  const marker = $('marker');
-  marker.addEventListener('markerFound', () => hint.classList.add('fade'));
-  document.querySelector('a-scene').addEventListener('owl-arrived', () => {
-    hint.hidden = true;
-    $('room-btn').hidden = false;
-    if (!owned) setTimeout(() => { namer.style.display = 'flex'; }, 1800);
-  });
-  const scene = document.querySelector('a-scene');
-  scene.addEventListener('owl-away', () => {
-    hint.textContent = 'Наведи камеру на карточку, филин ждёт там';
-    hint.hidden = false; hint.classList.remove('fade');
-  });
-  scene.addEventListener('owl-back', () => { hint.classList.add('fade'); });
-}
-$('boot-retry').addEventListener('click', startAR);
-$('gyro-btn').addEventListener('click', askGyro);
-startAR();
+/* ================= start: XRExtras shows loading, asks for camera/motion access, then runs the engine ================= */
+const onxrloaded = () => {
+  XR8.XrController.configure({ imageTargetData: [window.OWL_TARGET], disableWorldTracking: false });
+  XR8.addCameraPipelineModules([
+    XR8.GlTextureRenderer.pipelineModule(),
+    XR8.Threejs.pipelineModule(),
+    XR8.XrController.pipelineModule(),
+    XRExtras.AlmostThere.pipelineModule(),
+    XRExtras.FullWindowCanvas.pipelineModule(),
+    XRExtras.Loading.pipelineModule(),
+    XRExtras.RuntimeError.pipelineModule(),
+    owlModule(),
+  ]);
+  XR8.run({ canvas: $('camerafeed'), allowedDevices: XR8.XrConfig.device().MOBILE });
+};
+const startXR = () => { XRExtras.Loading.showLoading({ onxrloaded }); };
+window.addEventListener('load', () => {
+  window.XRExtras ? startXR() : window.addEventListener('xrextrasloaded', startXR, { once: true });
+});
 
 /* ================= naming ================= */
 function commitName() {
   const name = $('owl-name').value.trim() || 'Филин';
-  owned = saveCreature(name);
+  const all = readCollection();
+  owned = all.filin = { name, species: 'Филин', foundAt: new Date().toISOString() };
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(all)); } catch (e) { /* storage blocked: name kept for this visit */ }
   applyName();
-  namer.style.display = 'none';
+  $('namer').style.display = 'none';
   $('owl-name').blur();
-  const toast = $('hint');
-  toast.textContent = '«' + name + '» теперь в твоей коллекции';
-  toast.classList.remove('fade'); toast.hidden = false;
-  setTimeout(() => toast.classList.add('fade'), 2600);
+  const t = $('hint');
+  t.textContent = '«' + name + '» теперь в твоей коллекции';
+  t.hidden = false; t.classList.remove('fade');
+  setTimeout(() => t.classList.add('fade'), 2600);
 }
 $('namer-save').addEventListener('click', commitName);
 $('owl-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') commitName(); });
 
 /* ================= bottom sheet ================= */
-const grab = $('grab');
+const sheet = $('sheet'), grab = $('grab');
 function setOpen(open) { sheet.classList.toggle('open', open); grab.setAttribute('aria-expanded', String(open)); }
 grab.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!sheet.classList.contains('open')); } });
 let startY = null, moved = false;
