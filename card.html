@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#121a17">
+<title>Филин на карточке</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Nunito:wght@400;600;800&display=swap">
+<style>
+:root {
+  color-scheme: dark;
+  --night: #121a17;
+  --moss: #1d2a24;
+  --bark: #2c3a33;
+  --feather: #e9dcc6;
+  --dusk: #a9b5a9;
+  --amber: #f0a43a;
+  --glass: rgba(18, 26, 23, .8);
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--night); color: var(--feather); font-family: var(--body); }
+button { font-family: var(--body); }
+
+/* ---------- loading / error ---------- */
+#boot {
+  position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  background: radial-gradient(120% 70% at 50% 0%, #2a3d33 0%, var(--night) 65%); text-align: center;
+}
+#boot h1 { font-family: var(--display); font-size: clamp(30px, 10vw, 46px); margin: 0; }
+#boot p { margin: 0; max-width: 34ch; line-height: 1.45; color: var(--dusk); }
+#boot .err { color: #ffcabd; }
+.btn { font: 800 17px/1 var(--body); color: #1b140a; background: var(--amber); border: 0; border-radius: 16px; padding: 16px 22px; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--feather); border: 1px solid var(--bark); }
+.btn:focus-visible, .chip:focus-visible { outline: 3px solid var(--feather); outline-offset: 3px; }
+.link { color: var(--dusk); font-weight: 700; }
+.spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--bark); border-top-color: var(--amber); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- AR overlay ---------- */
+#ar-root { position: fixed; inset: 0; }
+.top {
+  position: fixed; z-index: 15; left: 0; right: 0; top: 0;
+  padding: calc(env(safe-area-inset-top) + 12px) max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+  display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; pointer-events: none;
+}
+.chip {
+  pointer-events: auto; background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--bark); border-radius: 999px; padding: 10px 16px; color: var(--feather);
+  font-weight: 700; font-size: 15px; transition: opacity .3s;
+}
+.chip.amber { border-color: var(--amber); color: var(--amber); cursor: pointer; }
+.chip[hidden] { display: none; }
+.fade { opacity: 0; }
+
+/* ---------- name dialog ---------- */
+#namer {
+  position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; display: none;
+  padding: 22px max(18px, env(safe-area-inset-right)) calc(22px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+  background: var(--moss); border-top: 1px solid var(--bark); border-radius: 24px 24px 0 0;
+  box-shadow: 0 -10px 30px rgba(0,0,0,.4);
+  flex-direction: column; gap: 12px; animation: up .4s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes up { from { transform: translateY(100%); } to { transform: none; } }
+#namer .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--amber); }
+#namer h2 { font-family: var(--display); font-size: 22px; margin: 0; line-height: 1.15; }
+#namer p { margin: 0; color: var(--dusk); line-height: 1.4; }
+#namer input {
+  font: 700 18px var(--body); color: var(--feather); background: var(--night); border: 1px solid var(--bark);
+  border-radius: 14px; padding: 14px 16px; width: 100%;
+}
+#namer input:focus { outline: 2px solid var(--amber); border-color: transparent; }
+#namer .row { display: flex; gap: 10px; }
+#namer .row .btn { flex: 1; }
+
+/* ---------- bottom sheet ---------- */
+#sheet {
+  position: fixed; z-index: 20; left: 0; right: 0; bottom: 0;
+  background: var(--moss); border-top: 1px solid var(--bark); border-radius: 24px 24px 0 0;
+  max-height: 78vh; display: none; flex-direction: column;
+  --peek: calc(92px + env(safe-area-inset-bottom));
+  transform: translateY(calc(100% - var(--peek)));
+  transition: transform .35s cubic-bezier(.2,.8,.2,1);
+  box-shadow: 0 -10px 30px rgba(0,0,0,.35); touch-action: none;
+}
+#sheet.open { transform: translateY(0); }
+#sheet .grab { padding: 10px max(18px, env(safe-area-inset-right)) 14px max(18px, env(safe-area-inset-left)); cursor: pointer; display: flex; flex-direction: column; gap: 8px; user-select: none; }
+#sheet .handle { width: 44px; height: 5px; border-radius: 3px; background: var(--bark); align-self: center; }
+#sheet .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#sheet h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; line-height: 1.1; overflow-wrap: anywhere; }
+#sheet .sub { color: var(--dusk); font-size: 14px; }
+#sheet .doing { color: var(--amber); font-weight: 800; }
+#sheet .chev { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--bark); display: grid; place-items: center; flex: none; transition: transform .3s; }
+#sheet.open .chev { transform: rotate(180deg); }
+#sheet .body { overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 4px max(18px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); display: flex; flex-direction: column; gap: 14px; line-height: 1.5; }
+.badge { align-self: flex-start; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #ffb3a1; border: 1px solid #6b3a30; border-radius: 999px; padding: 4px 10px; }
+.body p { margin: 0; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.stat { border-top: 1px solid var(--bark); padding-top: 8px; min-width: 0; }
+.stat dt { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--dusk); }
+.stat dd { margin: 2px 0 0; font-weight: 800; font-size: 17px; }
+.fact { border-radius: 14px; padding: 12px 14px; background: #2a2a1d; border: 1px solid #4a3f22; }
+.fact b { color: var(--amber); }
+.sheet-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.sheet-actions a { flex: 1; text-align: center; text-decoration: none; }
+
+#arjs-video { object-fit: cover; }
+.a-enter-vr, .a-orientation-modal { display: none !important; }
+@media (prefers-reduced-motion: reduce) { #sheet, .chip, #sheet .chev, #namer { transition: none; animation: none; } }
+</style>
+</head>
+<body>
+
+<section id="boot">
+  <h1>Филин</h1>
+  <div class="spinner" id="boot-spin"></div>
+  <p id="boot-msg">Включаю камеру… Разреши доступ, когда браузер спросит.</p>
+  <button class="btn" id="boot-retry" type="button" hidden>Включить камеру</button>
+  <a class="link" href="index.html?ar=1">Поставить филина в комнате без карточки</a>
+</section>
+
+<div id="ar-root"></div>
+
+<div class="top">
+  <div class="chip" id="hint" hidden>Наведи камеру на карточку с кодом</div>
+  <button class="chip amber" id="gyro-btn" type="button" hidden>Нажми, чтобы филин не пропадал</button>
+  <a class="chip amber" id="room-btn" href="index.html?ar=1" hidden style="text-decoration:none">Обойти вокруг · 360°</a>
+</div>
+
+<section id="namer" aria-labelledby="namer-title">
+  <div class="eyebrow">Новый житель · Шайтан-Тау</div>
+  <h2 id="namer-title">Ты нашёл филина!</h2>
+  <p>Придумай ему имя, и он навсегда поселится в твоей коллекции.</p>
+  <input id="owl-name" type="text" maxlength="24" placeholder="Например, Ухтыш" autocomplete="off" enterkeyhint="done">
+  <div class="row">
+    <button class="btn" id="namer-save" type="button">Добавить в коллекцию</button>
+  </div>
+</section>
+
+<section id="sheet" aria-label="Карточка обитателя">
+  <div class="grab" id="grab" role="button" tabindex="0" aria-expanded="false">
+    <div class="handle"></div>
+    <div class="row">
+      <div style="min-width:0">
+        <h2 id="sheet-title">Филин</h2>
+        <div class="sub"><span id="sheet-latin">Bubo bubo</span> · <span class="doing" id="doing">сидит на ветке</span></div>
+      </div>
+      <div class="chev" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 10l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+  <div class="body">
+    <span class="badge">Редкий охраняемый вид</span>
+    <p>Самая крупная сова наших лесов и скал. Днём филин прячется в расщелинах камней и густых кронах, а ночью выходит на охоту. Летает совсем бесшумно: мягкие края перьев гасят звук взмаха.</p>
+    <dl class="stats">
+      <div class="stat"><dt>Размах крыльев</dt><dd>до 1,9 м</dd></div>
+      <div class="stat"><dt>Рост</dt><dd>60–75 см</dd></div>
+      <div class="stat"><dt>Вес</dt><dd>2–4 кг</dd></div>
+      <div class="stat"><dt>Живёт</dt><dd>до 20 лет</dd></div>
+      <div class="stat"><dt>Охотится</dt><dd>ночью</dd></div>
+      <div class="stat"><dt>Ест</dt><dd>грызунов, зайцев, птиц</dd></div>
+    </dl>
+    <div class="fact"><b>Знаешь ли ты?</b> Филин может повернуть голову почти на 270 градусов. Глаза у него неподвижные, поэтому оглядываться ему приходится всей головой. Коснись экрана, и филин отзовётся.</div>
+    <div class="sheet-actions">
+      <a class="btn ghost" href="collection.html">Моя коллекция</a>
+      <a class="btn ghost" href="index.html?ar=1">Поставить в комнате · 360°</a>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/aframe@1.3.0/dist/aframe-v1.3.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.5/aframe/build/aframe-ar.js"></script>
+<script>
+/* ================= collection (stored on this phone) ================= */
+const STORE_KEY = 'shaitantau.collection.v1';
+const CREATURE = { id: 'filin', species: 'Филин', latin: 'Bubo bubo' };
+function readCollection() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { return {}; }
+}
+function saveCreature(name) {
+  const all = readCollection();
+  all[CREATURE.id] = { name, species: CREATURE.species, foundAt: new Date().toISOString() };
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(all)); } catch (e) { /* storage unavailable: name lives for this visit only */ }
+  return all[CREATURE.id];
+}
+let owned = readCollection()[CREATURE.id] || null;
+function applyName() {
+  document.getElementById('sheet-title').textContent = owned ? owned.name : CREATURE.species;
+  document.getElementById('sheet-latin').textContent = owned ? CREATURE.species + ' · ' + CREATURE.latin : CREATURE.latin;
+}
+applyName();
+
+/* ================= owl behaviour ================= */
+const LABELS = { Idle: 'сидит на ветке', Shift: 'переминается', LookAround: 'оглядывается', Flap: 'машет крыльями', Hoot: 'ухает', Shake: 'встряхивается' };
+const ACTIONS = [ ['Shift', 30], ['LookAround', 30], ['Flap', 15], ['Hoot', 15], ['Shake', 10] ];
+
+AFRAME.registerComponent('owl-brain', {
+  init() {
+    this.mixer = null; this.current = null; this.last = null; this.wait = 3;
+    this.el.addEventListener('model-loaded', (e) => {
+      const model = e.detail.model;
+      model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+      this.mixer = new THREE.AnimationMixer(model);
+      this.actions = {};
+      (model.animations || []).forEach((clip) => {
+        const a = this.mixer.clipAction(clip);
+        if (clip.name !== 'Idle') { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; }
+        this.actions[clip.name] = a;
+      });
+      this.idle = this.actions.Idle;
+      if (this.idle) this.idle.play();
+      this.mixer.addEventListener('finished', (ev) => this.toIdle(ev.action));
+    });
+    window.addEventListener('pointerup', (e) => {
+      if (e.target.closest && e.target.closest('#sheet, #namer, .top, #boot')) return;
+      if (!this.current) this.perform(Math.random() < .5 ? 'Hoot' : 'LookAround');
+    });
+    this.el.sceneEl.addEventListener('owl-arrived', () => this.perform('Flap'));
+  },
+  pick() {
+    const pool = ACTIONS.filter(([n]) => n !== this.last && this.actions[n]);
+    let r = Math.random() * pool.reduce((s, [, w]) => s + w, 0);
+    for (const [n, w] of pool) { if ((r -= w) <= 0) return n; }
+    return pool[0][0];
+  },
+  perform(name) {
+    if (!this.actions || !this.actions[name] || this.current) return;
+    const a = this.actions[name];
+    this.current = a; this.last = name;
+    a.reset().setEffectiveWeight(1).fadeIn(0.35).play();
+    this.idle.fadeOut(0.35);
+    document.getElementById('doing').textContent = LABELS[name];
+  },
+  toIdle(action) {
+    if (action !== this.current) return;
+    this.idle.reset().fadeIn(0.45).play();
+    action.fadeOut(0.45);
+    this.current = null;
+    this.wait = 4 + Math.random() * 5;
+    document.getElementById('doing').textContent = LABELS.Idle;
+  },
+  tick(t, dt) {
+    if (!this.mixer) return;
+    const s = Math.min(dt, 100) / 1000;
+    this.mixer.update(s);
+    if (!this.current) { this.wait -= s; if (this.wait <= 0) this.perform(this.pick()); }
+  }
+});
+
+AFRAME.registerComponent('shadow-catcher', {
+  init() {
+    const apply = () => {
+      const mesh = this.el.getObject3D('mesh'); if (!mesh) return;
+      mesh.material = new THREE.ShadowMaterial({ opacity: 0.38 }); mesh.receiveShadow = true;
+    };
+    apply(); this.el.addEventListener('object3dset', apply);
+  }
+});
+
+/* ================= gyroscope: phone orientation as a quaternion ================= */
+const gyro = { q: null, ok: false };
+(function () {
+  const zee = new THREE.Vector3(0, 0, 1), euler = new THREE.Euler(), q0 = new THREE.Quaternion();
+  const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+  const deg = THREE.MathUtils.DEG2RAD;
+  window.addEventListener('deviceorientation', (e) => {
+    if (e.alpha === null) return;
+    const orient = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * deg;
+    const q = gyro.q || new THREE.Quaternion();
+    euler.set(e.beta * deg, e.alpha * deg, -e.gamma * deg, 'YXZ');
+    q.setFromEuler(euler); q.multiply(q1); q.multiply(q0.setFromAxisAngle(zee, -orient));
+    gyro.q = q; gyro.ok = true;
+  });
+})();
+async function askGyro() {
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try { await DeviceOrientationEvent.requestPermission(); } catch (e) { /* user said no: owl will hold its screen position */ }
+  }
+  document.getElementById('gyro-btn').hidden = true;
+}
+
+/* ================= anchor: follows the card, holds its place when the card is out of view ================= */
+AFRAME.registerComponent('owl-anchor', {
+  schema: { marker: { type: 'selector' } },
+  init() {
+    const o = this.el.object3D;
+    o.visible = false;
+    this.found = false; this.seenOnce = false;
+    this.mPos = new THREE.Vector3(); this.mQuat = new THREE.Quaternion(); this.mScale = new THREE.Vector3();
+    this.lastPos = new THREE.Vector3(); this.lastQuat = new THREE.Quaternion(); this.lastScale = new THREE.Vector3(1, 1, 1);
+    this.gyroAtLoss = new THREE.Quaternion(); this.hasGyroRef = false;
+    this.tmpQ = new THREE.Quaternion();
+    const m = this.data.marker;
+    m.addEventListener('markerFound', () => { this.found = true; });
+    m.addEventListener('markerLost', () => { this.found = false; });
+  },
+  tick() {
+    const o = this.el.object3D, marker = this.data.marker.object3D;
+    if (this.found && marker.visible) {
+      marker.updateMatrixWorld(true);
+      marker.matrixWorld.decompose(this.mPos, this.mQuat, this.mScale);
+      if (!this.seenOnce) {
+        o.position.copy(this.mPos); o.quaternion.copy(this.mQuat); o.scale.copy(this.mScale);
+        this.seenOnce = true; o.visible = true;
+        this.el.sceneEl.emit('owl-arrived');
+      } else {
+        o.visible = true;
+        o.position.lerp(this.mPos, 0.7); o.quaternion.slerp(this.mQuat, 0.7); o.scale.lerp(this.mScale, 0.7);
+      }
+      this.lastPos.copy(o.position); this.lastQuat.copy(o.quaternion); this.lastScale.copy(o.scale);
+      if (gyro.ok) { this.gyroAtLoss.copy(gyro.q); this.hasGyroRef = true; }
+    } else if (this.seenOnce) {
+      // card not visible: keep the owl where it was in the room by undoing the phone's rotation since then
+      if (this.hasGyroRef && gyro.ok) {
+        this.tmpQ.copy(gyro.q).invert().multiply(this.gyroAtLoss);   // Q_now^-1 * Q_then
+        o.position.copy(this.lastPos).applyQuaternion(this.tmpQ);
+        o.quaternion.copy(this.tmpQ).multiply(this.lastQuat);
+      } else {
+        // no motion data: hiding is better than an owl glued to the screen
+        o.visible = false;
+      }
+      o.scale.copy(this.lastScale);
+    }
+  }
+});
+
+/* ================= start AR immediately ================= */
+async function loadOwlModel() {
+  const res = await fetch('owl.b64.txt');
+  if (!res.ok) throw new Error('model ' + res.status);
+  const bin = atob((await res.text()).replace(/\s+/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return URL.createObjectURL(new Blob([bytes], { type: 'model/gltf-binary' }));
+}
+
+const SCENE = (model) => `
+<a-scene embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false"
+  renderer="colorManagement: true; antialias: true; alpha: true; precision: mediump"
+  shadow="type: pcfsoft; autoUpdate: true"
+  arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; patternRatio: 0.70; cameraParametersUrl: https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/data/camera_para.dat; maxDetectionRate: 60">
+  <a-marker id="marker" type="pattern" url="owl.patt" emitevents="true"
+    smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="2"></a-marker>
+  <a-entity id="anchor" owl-anchor="marker: #marker">
+    <a-entity id="owl" gltf-model="url(${model})" position="0.107 0 0.296" scale="1.6 1.6 1.6" owl-brain></a-entity>
+    <a-plane rotation="-90 0 0" width="3" height="3" position="0 0.002 0" shadow-catcher></a-plane>
+    <a-entity light="type: directional; intensity: 1.1; castShadow: true; shadowMapWidth: 1024; shadowMapHeight: 1024; shadowCameraLeft: -2.6; shadowCameraRight: 2.6; shadowCameraTop: 2.6; shadowCameraBottom: -2.6; shadowCameraNear: 0.1; shadowCameraFar: 12; shadowBias: -0.002"
+      position="1.2 4.5 1.8"></a-entity>
+  </a-entity>
+  <a-entity light="type: hemisphere; color: #fff6e8; groundColor: #5b5246; intensity: 1.0"></a-entity>
+  <a-entity camera></a-entity>
+</a-scene>`;
+
+const $ = (id) => document.getElementById(id);
+const hint = $('hint'), sheet = $('sheet'), namer = $('namer');
+
+function bootError(msg) {
+  $('boot').style.display = 'flex';
+  $('boot-spin').hidden = true;
+  $('boot-msg').textContent = msg; $('boot-msg').classList.add('err');
+  $('boot-retry').hidden = false;
+}
+
+async function startAR() {
+  $('boot-retry').hidden = true; $('boot-spin').hidden = false;
+  $('boot-msg').classList.remove('err');
+  $('boot-msg').textContent = 'Включаю камеру… Разреши доступ, когда браузер спросит.';
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    bootError('Этот браузер не даёт доступ к камере. Открой ссылку в Safari или Chrome.'); return;
+  }
+  let model;
+  try {
+    const [, m] = await Promise.all([
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then((s) => s.getTracks().forEach((t) => t.stop())),
+      loadOwlModel()
+    ]);
+    model = m;
+  } catch (e) {
+    const denied = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
+    bootError(denied
+      ? 'Камера не включилась. Разреши доступ к камере в настройках браузера и нажми кнопку ниже.'
+      : 'Не получилось запустить. Проверь интернет и нажми кнопку ниже.');
+    return;
+  }
+  $('boot').style.display = 'none';
+  // AR.js draws the camera video behind the page; an opaque page background would hide it
+  document.documentElement.style.background = 'transparent';
+  document.body.style.background = 'transparent';
+  $('ar-root').innerHTML = SCENE(model);
+  hint.hidden = false; sheet.style.display = 'flex';
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    $('gyro-btn').hidden = false;      // iPhone asks for motion access only after a tap
+  }
+  const marker = $('marker');
+  marker.addEventListener('markerFound', () => hint.classList.add('fade'));
+  document.querySelector('a-scene').addEventListener('owl-arrived', () => {
+    hint.hidden = true;
+    $('room-btn').hidden = false;
+    if (!owned) setTimeout(() => { namer.style.display = 'flex'; }, 1800);
+  });
+}
+$('boot-retry').addEventListener('click', startAR);
+$('gyro-btn').addEventListener('click', askGyro);
+startAR();
+
+/* ================= naming ================= */
+function commitName() {
+  const name = $('owl-name').value.trim() || 'Филин';
+  owned = saveCreature(name);
+  applyName();
+  namer.style.display = 'none';
+  $('owl-name').blur();
+  const toast = $('hint');
+  toast.textContent = '«' + name + '» теперь в твоей коллекции';
+  toast.classList.remove('fade'); toast.hidden = false;
+  setTimeout(() => toast.classList.add('fade'), 2600);
+  askGyro();
+}
+$('namer-save').addEventListener('click', commitName);
+$('owl-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') commitName(); });
+
+/* ================= bottom sheet ================= */
+const grab = $('grab');
+function setOpen(open) { sheet.classList.toggle('open', open); grab.setAttribute('aria-expanded', String(open)); }
+grab.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!sheet.classList.contains('open')); } });
+let startY = null, moved = false;
+grab.addEventListener('pointerdown', (e) => { startY = e.clientY; moved = false; grab.setPointerCapture(e.pointerId); });
+grab.addEventListener('pointermove', (e) => { if (startY !== null && Math.abs(e.clientY - startY) > 12) moved = true; });
+grab.addEventListener('pointerup', (e) => {
+  if (startY === null) return;
+  const dy = e.clientY - startY; startY = null;
+  if (!moved) setOpen(!sheet.classList.contains('open')); else setOpen(dy < 0);
+});
+</script>
+</body>
+</html>
