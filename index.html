@@ -384,6 +384,9 @@ async function startAR() {
     return;
   }
   $('boot').style.display = 'none';
+  // AR.js draws the camera video behind the page; an opaque page background would hide it
+  document.documentElement.style.background = 'transparent';
+  document.body.style.background = 'transparent';
   $('ar-root').innerHTML = SCENE(model);
   hint.hidden = false; sheet.style.display = 'flex';
   if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
