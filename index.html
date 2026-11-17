@@ -212,7 +212,7 @@ const brain = {
 
 /* ================= scene module for the 8th Wall camera pipeline ================= */
 const PLACE = window.OWL_PLACE || { x: 0, y: 0, frame: 0.43 };
-const OWL_SCALE = PLACE.frame * 1.25 / 0.91;   // owl base (0.91 m in the model) a bit wider than the QR frame
+const OWL_SCALE = PLACE.frame * 2.0 / 0.91;    // owl base (0.91 m in the model) twice the QR frame: a big owl on the card
 let anchor, seen = false, lastFrame = 0;
 
 function owlModule() {
@@ -235,11 +235,11 @@ function owlModule() {
       sun.position.set(0.5, -0.7, 2.2);          // card space: +z points up out of the card
       sun.castShadow = true;
       sun.shadow.mapSize.set(1024, 1024);
-      Object.assign(sun.shadow.camera, { left: -1.2, right: 1.2, top: 1.2, bottom: -1.2, near: 0.1, far: 6 });
+      Object.assign(sun.shadow.camera, { left: -2, right: 2, top: 2, bottom: -2, near: 0.1, far: 8 });
       sun.shadow.bias = -0.002;
       anchor.add(sun); anchor.add(sun.target);
 
-      const catcher = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), new THREE.ShadowMaterial({ opacity: 0.35 }));
+      const catcher = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), new THREE.ShadowMaterial({ opacity: 0.35 }));
       catcher.position.z = 0.002;
       catcher.receiveShadow = true;
       anchor.add(catcher);
@@ -280,18 +280,37 @@ function owlModule() {
   };
 }
 
+/* Placement: settle for a moment, then freeze in the world.
+   After the freeze only SLAM moves the owl (that is what keeps it fixed in the room);
+   the card's own small detection jitter is ignored. If the card is really moved, the owl follows. */
+const SETTLE_MS = 1500;          // average the card pose for this long after first sight
+const MOVE_FAR = 0.35;           // card moved more than this (in card heights) ...
+const MOVE_HOLD_MS = 700;        // ... for this long -> re-place the owl
 const tmpPos = new THREE.Vector3(), tmpQuat = new THREE.Quaternion();
+let firstSeenAt = 0, frozen = false, farSince = 0;
 function onImage({ detail }) {
   if (!anchor || detail.name !== 'owl-card') return;
   tmpPos.set(detail.position.x, detail.position.y, detail.position.z);
   tmpQuat.set(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w);
+  const now = performance.now();
   if (!seen) {
     anchor.position.copy(tmpPos); anchor.quaternion.copy(tmpQuat); anchor.scale.setScalar(detail.scale);
-    anchor.visible = true; seen = true;
+    anchor.visible = true; seen = true; firstSeenAt = now; frozen = false;
     owlArrived();
+  } else if (!frozen) {
+    // gentle running average while settling
+    anchor.position.lerp(tmpPos, 0.15); anchor.quaternion.slerp(tmpQuat, 0.15);
+    anchor.scale.setScalar(THREE.MathUtils.lerp(anchor.scale.x, detail.scale, 0.15));
+    if (now - firstSeenAt > SETTLE_MS) frozen = true;
   } else {
-    anchor.position.lerp(tmpPos, 0.5); anchor.quaternion.slerp(tmpQuat, 0.5);
-    anchor.scale.setScalar(THREE.MathUtils.lerp(anchor.scale.x, detail.scale, 0.5));
+    // frozen: react only to a real move of the card, held for a while
+    const far = anchor.position.distanceTo(tmpPos) > MOVE_FAR * anchor.scale.x;
+    if (far) {
+      if (!farSince) farSince = now;
+      if (now - farSince > MOVE_HOLD_MS) { frozen = false; firstSeenAt = now; farSince = 0; }
+    } else {
+      farSince = 0;
+    }
   }
   $('hint').classList.add('fade');
 }
