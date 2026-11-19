@@ -27,7 +27,7 @@ button { font-family: var(--body); }
 /* ---------- overlay ---------- */
 .top {
   position: fixed; z-index: 15; left: 0; right: 0; top: 0; pointer-events: none;
-  padding: calc(env(safe-area-inset-top) + 12px) max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+  padding: calc(env(safe-area-inset-top) + 64px) max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
   display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
 }
 .chip {
@@ -60,7 +60,7 @@ button { font-family: var(--body); }
   position: fixed; z-index: 20; left: 0; right: 0; bottom: 0;
   background: var(--moss); border-top: 1px solid var(--bark); border-radius: 24px 24px 0 0;
   max-height: 78vh; display: none; flex-direction: column;
-  --peek: calc(92px + env(safe-area-inset-bottom));
+  --peek: calc(170px + env(safe-area-inset-bottom));
   transform: translateY(calc(100% - var(--peek))); transition: transform .35s cubic-bezier(.2,.8,.2,1);
   box-shadow: 0 -10px 30px rgba(0,0,0,.35); touch-action: none;
 }
@@ -73,6 +73,16 @@ button { font-family: var(--body); }
 #sheet .doing { color: var(--amber); font-weight: 800; }
 #sheet .chev { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--bark); display: grid; place-items: center; flex: none; transition: transform .3s; }
 #sheet.open .chev { transform: rotate(180deg); }
+#sheet .acts { display: flex; gap: 10px; padding: 0 max(18px, env(safe-area-inset-right)) 14px max(18px, env(safe-area-inset-left)); }
+#sheet .acts .btn { flex: 1; padding: 15px 10px; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; }
+#sheet .acts .btn.done { background: #2f4a39; color: var(--feather); }
+#sheet .acts .btn.pulse { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(240, 164, 58, .35); } }
+.player { position: fixed; z-index: 16; left: max(12px, env(safe-area-inset-left)); top: calc(env(safe-area-inset-top) + 12px); display: flex; align-items: center; gap: 8px; }
+.player[hidden] { display: none; }
+.player .av { font-size: 20px; }
+#namer .row2 { display: flex; gap: 10px; }
+#namer .row2 .btn { flex: 1; }
 #sheet .body { overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 4px max(18px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); display: flex; flex-direction: column; gap: 14px; line-height: 1.5; }
 .badge { align-self: flex-start; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #ffb3a1; border: 1px solid #6b3a30; border-radius: 999px; padding: 4px 10px; }
 .body p { margin: 0; }
@@ -93,16 +103,17 @@ button { font-family: var(--body); }
 
 <canvas id="camerafeed"></canvas>
 
+<button class="chip player" id="player" type="button" hidden aria-label="Сменить игрока"><span class="av" id="player-av"></span><span id="player-name"></span></button>
 <div class="top">
   <div class="chip" id="hint" hidden>Наведи камеру на карточку с кодом</div>
 </div>
 
 <section id="namer" aria-labelledby="namer-title">
   <div class="eyebrow">Новый житель · Шайтан-Тау</div>
-  <h2 id="namer-title">Ты нашёл филина!</h2>
+  <h2 id="namer-title">Ты нашёл нового жителя!</h2>
   <p>Придумай ему имя, и он навсегда поселится в твоей коллекции.</p>
-  <input id="owl-name" type="text" maxlength="24" placeholder="Например, Ухтыш" autocomplete="off" enterkeyhint="done">
-  <button class="btn" id="namer-save" type="button">Добавить в коллекцию</button>
+  <input id="owl-name" type="text" maxlength="24" placeholder="Придумай имя" autocomplete="off" enterkeyhint="done">
+  <div class="row2"><button class="btn" id="namer-save" type="button">Сохранить</button><button class="btn ghost" id="namer-cancel" type="button">Отмена</button></div>
 </section>
 
 <section id="sheet" aria-label="Карточка обитателя">
@@ -118,20 +129,18 @@ button { font-family: var(--body); }
       </div>
     </div>
   </div>
+  <div class="acts" id="acts">
+    <button class="btn pulse" id="btn-add" type="button">+ В коллекцию</button>
+    <button class="btn ghost" id="btn-enter" type="button">В заповедник →</button>
+  </div>
   <div class="body">
-    <span class="badge">Редкий охраняемый вид</span>
-    <p>Самая крупная сова наших лесов и скал. Днём филин прячется в расщелинах камней и густых кронах, а ночью выходит на охоту. Летает совсем бесшумно: мягкие края перьев гасят звук взмаха.</p>
-    <dl class="stats">
-      <div class="stat"><dt>Размах крыльев</dt><dd>до 1,9 м</dd></div>
-      <div class="stat"><dt>Рост</dt><dd>60–75 см</dd></div>
-      <div class="stat"><dt>Вес</dt><dd>2–4 кг</dd></div>
-      <div class="stat"><dt>Живёт</dt><dd>до 20 лет</dd></div>
-      <div class="stat"><dt>Охотится</dt><dd>ночью</dd></div>
-      <div class="stat"><dt>Ест</dt><dd>грызунов, зайцев, птиц</dd></div>
-    </dl>
-    <div class="fact"><b>Знаешь ли ты?</b> Филин может повернуть голову почти на 270 градусов. Глаза у него неподвижные, поэтому оглядываться ему приходится всей головой. Коснись экрана, и филин отзовётся.</div>
+    <span class="eyebrow">Информация</span>
+    <span class="badge" id="badge"></span>
+    <p id="about"></p>
+    <dl class="stats" id="stats"></dl>
+    <div class="fact"><b>Знаешь ли ты?</b> <span id="fact"></span> Коснись экрана, и житель отзовётся.</div>
     <div class="sheet-actions">
-      <a class="btn ghost" href="collection.html">Моя коллекция</a>
+      <a class="btn ghost" href="collection.html">Вся коллекция</a>
     </div>
     <p class="credit">This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
   </div>
@@ -141,23 +150,57 @@ button { font-family: var(--body); }
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1.0.0/dist/xrextras.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1.0.0/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
-<script src="owl-target.js"></script>
+<script src="profile.js"></script>
+<script src="animals.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 
-/* ================= collection (stored on this phone) ================= */
-const STORE_KEY = 'shaitantau.collection.v1';
-function readCollection() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { return {}; } }
-let owned = readCollection().filin || null;
-function applyName() {
-  $('sheet-title').textContent = owned ? owned.name : 'Филин';
-  $('sheet-latin').textContent = owned ? 'Филин · Bubo bubo' : 'Bubo bubo';
-}
-applyName();
+/* ================= which resident this QR opened (?a=baibak); no parameter = the owl ================= */
+const AID = (() => {
+  const a = new URLSearchParams(location.search).get('a');
+  return a && window.ANIMALS[a] ? a : 'filin';
+})();
+const A = window.ANIMALS[AID];
+document.title = A.species + ' · Шайтан-Тау';
+$('badge').textContent = A.badge;
+$('about').textContent = A.about;
+$('fact').textContent = A.fact;
+$('stats').innerHTML = '';
+A.stats.forEach(([dt, dd]) => {
+  const div = document.createElement('div'); div.className = 'stat';
+  const t = document.createElement('dt'); t.textContent = dt;
+  const d = document.createElement('dd'); d.textContent = dd;
+  div.append(t, d); $('stats').append(div);
+});
+$('namer-title').textContent = A.found;
+$('owl-name').placeholder = A.placeholder;
+$('doing').textContent = A.labels.Idle;
 
-/* ================= owl model (base64 text -> GLB) ================= */
+/* ================= collection (stored on this phone) ================= */
+const STORE_BASE = 'shaitantau.collection.v1';
+function readCollection() { try { return JSON.parse(localStorage.getItem(Profile.key(STORE_BASE))) || {}; } catch (e) { return {}; } }
+let owned = null;
+function applyName() {
+  $('sheet-title').textContent = owned ? owned.name : A.species;
+  $('sheet-latin').textContent = owned ? A.species + ' · ' + A.latin : A.latin;
+  const add = $('btn-add');
+  add.textContent = owned ? '✓ В коллекции' : '+ В коллекцию';
+  add.classList.toggle('done', !!owned); add.classList.toggle('pulse', !owned);
+  $('btn-enter').classList.toggle('ghost', !owned);
+}
+
+/* ================= image target script for this resident ================= */
+const targetReady = new Promise((resolve, reject) => {
+  const s = document.createElement('script');
+  s.src = A.target;
+  s.onload = () => resolve({ target: window.AR_TARGET || window.OWL_TARGET, place: window.AR_PLACE || window.OWL_PLACE });
+  s.onerror = reject;
+  document.head.appendChild(s);
+});
+
+/* ================= model (base64 text -> GLB) ================= */
 async function loadOwlBuffer() {
-  const res = await fetch('owl.b64.txt');
+  const res = await fetch(A.model);
   if (!res.ok) throw new Error('model ' + res.status);
   const bin = atob((await res.text()).replace(/\s+/g, ''));
   const bytes = new Uint8Array(bin.length);
@@ -165,9 +208,9 @@ async function loadOwlBuffer() {
   return bytes.buffer;
 }
 
-/* ================= owl behaviour ================= */
-const LABELS = { Idle: 'сидит на ветке', Shift: 'переминается', LookAround: 'оглядывается', Flap: 'машет крыльями', Hoot: 'ухает', Shake: 'встряхивается' };
-const ACTIONS = [['Shift', 30], ['LookAround', 30], ['Flap', 15], ['Hoot', 15], ['Shake', 10]];
+/* ================= behaviour ================= */
+const LABELS = A.labels;
+const ACTIONS = A.actions;
 const brain = {
   mixer: null, actions: {}, idle: null, current: null, last: null, wait: 3,
   init(model, clips) {
@@ -211,8 +254,8 @@ const brain = {
 };
 
 /* ================= scene module for the 8th Wall camera pipeline ================= */
-const PLACE = window.OWL_PLACE || { x: 0, y: 0, frame: 0.43 };
-const OWL_SCALE = PLACE.frame * 2.0 / 0.91;    // owl base (0.91 m in the model) twice the QR frame: a big owl on the card
+let PLACE = { x: 0, y: 0.01, frame: 0.4314 }, TARGET_NAME = '';
+const OWL_SCALE = A.scale;                      // size of the animal on the card (set per resident in animals.js)
 let anchor, seen = false, lastFrame = 0;
 
 function owlModule() {
@@ -248,12 +291,15 @@ function owlModule() {
       const stand = new THREE.Group();
       stand.rotation.x = Math.PI / 2;
       stand.scale.setScalar(OWL_SCALE);
-      stand.position.set(PLACE.x + 0.067 * OWL_SCALE, PLACE.y - 0.185 * OWL_SCALE, 0);
+      // model base centre (cx, cy) goes onto the QR centre; model Y (depth) maps to card +y after the stand rotation
+      stand.position.set(PLACE.x - A.cx * OWL_SCALE, PLACE.y - A.cy * OWL_SCALE, 0);
       anchor.add(stand);
 
       loadOwlBuffer().then((buf) => {
         new THREE.GLTFLoader().parse(buf, '', (gltf) => {
           gltf.scene.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+          const bb = new THREE.Box3().setFromObject(gltf.scene);
+          if (bb.min.y < -0.01) gltf.scene.position.y = -bb.min.y;      // perch bottom onto the card
           stand.add(gltf.scene);
           brain.init(gltf.scene, gltf.animations);
         }, (err) => console.error(err));
@@ -264,7 +310,7 @@ function owlModule() {
       XR8.XrController.updateCameraProjectionMatrix({ origin: camera.position, facing: camera.quaternion });
 
       $('hint').hidden = false;
-      $('sheet').style.display = 'flex';
+      $('sheet').style.display = 'flex'; fitSheet();
     },
     onUpdate: () => {
       const now = performance.now();
@@ -289,7 +335,7 @@ const MOVE_HOLD_MS = 700;        // ... for this long -> re-place the owl
 const tmpPos = new THREE.Vector3(), tmpQuat = new THREE.Quaternion();
 let firstSeenAt = 0, frozen = false, farSince = 0;
 function onImage({ detail }) {
-  if (!anchor || detail.name !== 'owl-card') return;
+  if (!anchor || detail.name !== TARGET_NAME) return;
   tmpPos.set(detail.position.x, detail.position.y, detail.position.z);
   tmpQuat.set(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w);
   const now = performance.now();
@@ -316,24 +362,24 @@ function onImage({ detail }) {
 }
 function onImageLost({ detail }) {
   // world tracking keeps the owl where the card was: nothing to hide
-  if (detail && detail.name !== 'owl-card') return;
+  if (detail && detail.name !== TARGET_NAME) return;
 }
 
 function owlArrived() {
   brain.wait = 0.3;
-  setTimeout(() => brain.perform('Flap'), 300);
-  if (!owned) setTimeout(() => { $('namer').style.display = 'flex'; }, 2000);
+  setTimeout(() => brain.perform(A.arrive), 300);
 }
 
 /* tap anywhere on the camera view: the owl answers */
 window.addEventListener('pointerup', (e) => {
-  if (e.target.closest && e.target.closest('#sheet, #namer, .top')) return;
-  if (seen && !brain.current) brain.perform(Math.random() < .5 ? 'Hoot' : 'LookAround');
+  if (e.target.closest && e.target.closest('#sheet, #namer, .top, .player, .pf-wrap')) return;
+  if (seen && !brain.current) brain.perform(A.tap[Math.floor(Math.random() * A.tap.length)]);
 });
 
 /* ================= start: XRExtras shows loading, asks for camera/motion access, then runs the engine ================= */
+let TARGET = null;
 const onxrloaded = () => {
-  XR8.XrController.configure({ imageTargetData: [window.OWL_TARGET], disableWorldTracking: false });
+  XR8.XrController.configure({ imageTargetData: [TARGET], disableWorldTracking: false });
   XR8.addCameraPipelineModules([
     XR8.GlTextureRenderer.pipelineModule(),
     XR8.Threejs.pipelineModule(),
@@ -347,16 +393,27 @@ const onxrloaded = () => {
   XR8.run({ canvas: $('camerafeed'), allowedDevices: XR8.XrConfig.device().MOBILE });
 };
 const startXR = () => { XRExtras.Loading.showLoading({ onxrloaded }); };
-window.addEventListener('load', () => {
-  window.XRExtras ? startXR() : window.addEventListener('xrextrasloaded', startXR, { once: true });
-});
+function showPlayer(p) {
+  $('player-av').textContent = p.avatar; $('player-name').textContent = p.name; $('player').hidden = false;
+  owned = readCollection()[AID] || null; applyName(); fitSheet();
+}
+$('player').addEventListener('click', () => { Profile.signOut(); location.reload(); });
+window.addEventListener('load', () => Profile.ensure((p) => {
+  showPlayer(p);
+  const t = $('hint'); t.textContent = 'Привет, ' + p.name + '! Наведи камеру на карточку с кодом'; t.hidden = false;
+  targetReady.then(({ target, place }) => {
+    TARGET = target; TARGET_NAME = target.name;
+    if (place) PLACE = place;
+    window.XRExtras ? startXR() : window.addEventListener('xrextrasloaded', startXR, { once: true });
+  }).catch((e) => console.error('target', e));
+}));
 
 /* ================= naming ================= */
 function commitName() {
-  const name = $('owl-name').value.trim() || 'Филин';
+  const name = $('owl-name').value.trim() || A.species;
   const all = readCollection();
-  owned = all.filin = { name, species: 'Филин', foundAt: new Date().toISOString() };
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(all)); } catch (e) { /* storage blocked: name kept for this visit */ }
+  owned = all[AID] = { name, species: A.species, foundAt: new Date().toISOString() };
+  try { localStorage.setItem(Profile.key(STORE_BASE), JSON.stringify(all)); } catch (e) { /* storage blocked: name kept for this visit */ }
   applyName();
   $('namer').style.display = 'none';
   $('owl-name').blur();
@@ -364,12 +421,25 @@ function commitName() {
   t.textContent = '«' + name + '» теперь в твоей коллекции';
   t.hidden = false; t.classList.remove('fade');
   setTimeout(() => t.classList.add('fade'), 2600);
+  if (afterName) { const go = afterName; afterName = null; setTimeout(go, 700); }
 }
+let afterName = null;
+function openNamer(then) {
+  afterName = then || null;
+  $('namer-title').textContent = then ? 'Сначала добавь его в коллекцию' : A.found;
+  $('namer').style.display = 'flex'; setTimeout(() => $('owl-name').focus(), 60);
+}
+const enterReserve = () => { location.href = 'game.html?from=' + encodeURIComponent(AID); };
+$('btn-add').addEventListener('click', () => { if (!owned) openNamer(); });
+$('btn-enter').addEventListener('click', () => { if (owned) enterReserve(); else openNamer(enterReserve); });
+$('namer-cancel').addEventListener('click', () => { $('namer').style.display = 'none'; afterName = null; $('owl-name').blur(); });
 $('namer-save').addEventListener('click', commitName);
 $('owl-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') commitName(); });
 
 /* ================= bottom sheet ================= */
 const sheet = $('sheet'), grab = $('grab');
+function fitSheet() { if (!sheet.offsetHeight) return; sheet.style.setProperty('--peek', (grab.offsetHeight + $('acts').offsetHeight) + 'px'); }
+addEventListener('resize', fitSheet);
 function setOpen(open) { sheet.classList.toggle('open', open); grab.setAttribute('aria-expanded', String(open)); }
 grab.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!sheet.classList.contains('open')); } });
 let startY = null, moved = false;
