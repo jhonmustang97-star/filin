@@ -1,0 +1,2296 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Мой заповедник</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Nunito:wght@500;700;800;900&display=swap">
+<style>
+/* Layout: full-screen 3D island; glass HUD in the corners, animal card + care actions docked at the bottom. Single warm-forest look. */
+:root {
+  color-scheme: light;
+  --ink: #23301f;
+  --ink-soft: #5d6b54;
+  --glass: rgba(255, 250, 238, .8);
+  --glass-strong: rgba(255, 250, 238, .96);
+  --edge: rgba(255, 255, 255, .7);
+  --amber: #e8962e;
+  --amber-deep: #b86a12;
+  --moss: #5f8a3a;
+  --sky-top: #cfe6c8;
+  --sky-bottom: #f4e7c8;
+  --good: #5f9b3d; --warn: #e3a12f; --bad: #d4553c; --heart: #e2574a;
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --shadow: 0 10px 30px rgba(40, 52, 30, .18), 0 2px 6px rgba(40, 52, 30, .12);
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { background: linear-gradient(var(--sky-top), var(--sky-bottom)); color: var(--ink); font-family: var(--body); -webkit-tap-highlight-color: transparent; user-select: none; }
+#scene { position: fixed; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
+button, input { font-family: var(--body); color: inherit; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+.glass { background: var(--glass); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3); border: 1px solid var(--edge); box-shadow: var(--shadow); }
+.ico { width: 22px; height: 22px; flex: none; }
+
+/* ---------- top bar ---------- */
+.hud-top { position: fixed; z-index: 10; top: calc(env(safe-area-inset-top) + 12px); left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; pointer-events: none; }
+.hud-top > * { pointer-events: auto; }
+.profile { display: flex; align-items: center; gap: 12px; padding: 8px 16px 8px 8px; border-radius: 22px; min-width: 0; }
+.lvl-ring { position: relative; width: 52px; height: 52px; flex: none; }
+.lvl-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.lvl-ring .num { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 17px; }
+.profile .name { font-family: var(--display); font-weight: 700; font-size: 15px; white-space: nowrap; }
+.profile .sub { font-size: 12.5px; color: var(--ink-soft); font-weight: 700; font-variant-numeric: tabular-nums; }
+.res { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+.pill { display: flex; align-items: center; gap: 7px; padding: 6px 6px 6px 9px; border-radius: 999px; font-weight: 900; font-size: 15px; font-variant-numeric: tabular-nums; border: 1px solid var(--edge); cursor: pointer; }
+.pill .ico { width: 24px; height: 24px; }
+.pill .plus { width: 24px; height: 24px; border-radius: 50%; background: var(--amber); color: #fff; display: grid; place-items: center; font-size: 17px; line-height: 1; }
+.pill.bump { animation: bump .45s ease; }
+@keyframes bump { 40% { transform: scale(1.15); } }
+.clock { display: flex; align-items: center; gap: 8px; padding: 8px 14px 8px 10px; border-radius: 18px; font-weight: 900; font-size: 13px; margin-top: 8px; width: max-content; }
+.clock .ico { width: 22px; height: 22px; }
+.clock small { color: var(--ink-soft); font-weight: 800; }
+.left-col { display: flex; flex-direction: column; min-width: 0; }
+.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 6px 0 14px; }
+.day { border-radius: 12px; padding: 8px 2px; text-align: center; font-size: 11px; font-weight: 900; background: rgba(35, 48, 31, .07); color: var(--ink-soft); display: grid; gap: 2px; justify-items: center; }
+.day .ico { width: 18px; height: 18px; }
+.day.got { background: rgba(95, 155, 61, .18); color: var(--good); }
+.day.now { background: var(--amber); color: #fff; }
+.status { grid-column: 1 / -1; font-size: 12px; font-weight: 800; color: var(--amber-deep); display: flex; align-items: center; gap: 6px; }
+.status .ico { width: 14px; height: 14px; }
+.bubble.sleep { font-family: var(--display); font-weight: 700; font-size: 14px; color: #6a7ab8; }
+.icon-btn { width: 44px; height: 44px; border-radius: 16px; border: 0; display: grid; place-items: center; cursor: pointer; }
+.icon-btn .ico { color: var(--amber-deep); }
+
+/* ---------- side dock ---------- */
+.dock { position: fixed; z-index: 10; left: max(12px, env(safe-area-inset-left)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 24px; }
+.dock button { position: relative; width: 66px; border: 0; background: transparent; border-radius: 16px; padding: 8px 4px 6px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 800; cursor: pointer; transition: background .2s; }
+.dock button:hover, .dock button.on { background: rgba(232, 150, 46, .16); }
+.dock .ico { width: 26px; height: 26px; color: var(--amber-deep); }
+.badge { position: absolute; top: 2px; right: 6px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--bad); color: #fff; font-size: 11px; font-weight: 900; display: grid; place-items: center; padding: 0 5px; border: 2px solid var(--glass-strong); }
+
+/* ---------- bottom ---------- */
+.hud-bottom { position: fixed; z-index: 10; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: calc(env(safe-area-inset-bottom) + 12px); display: grid; grid-template-columns: minmax(max-content, 1fr) minmax(0, 560px) minmax(max-content, 1fr); align-items: end; gap: 12px; pointer-events: none; }
+.hud-bottom .round { justify-self: end; }
+.hud-bottom .loc { justify-self: start; }
+.hud-bottom > * { pointer-events: auto; }
+.loc { display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; border-radius: 20px; border: 0; cursor: pointer; text-align: left; }
+.loc .thumb { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--moss); color: #fff; flex: none; }
+.loc b { display: block; font-family: var(--display); font-size: 13px; }
+.loc span { font-size: 12px; color: var(--ink-soft); font-weight: 700; }
+.center { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 0; }
+.card { width: min(540px, 100%); border-radius: 22px; padding: 12px 14px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; }
+.card.empty { grid-template-columns: 1fr; text-align: center; color: var(--ink-soft); font-weight: 800; font-size: 14px; }
+.card .avatar { grid-row: span 3; width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; background: linear-gradient(135deg, #f6d9a5, #e8962e); color: #fff; align-self: start; }
+.card .avatar .ico { width: 30px; height: 30px; }
+.card .title { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+.card .title b { font-family: var(--display); font-size: 16px; }
+.card .title .latin { font-size: 12.5px; color: var(--ink-soft); font-weight: 700; }
+.card .rename { border: 0; background: rgba(35, 48, 31, .07); border-radius: 8px; width: 26px; height: 26px; display: grid; place-items: center; cursor: pointer; }
+.card .rename .ico { width: 14px; height: 14px; color: var(--ink-soft); }
+.card input.name-edit { font: 800 15px var(--body); border: 1px solid rgba(35, 48, 31, .2); border-radius: 10px; padding: 4px 8px; width: 160px; background: #fff; }
+.friend { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; color: var(--ink-soft); flex-wrap: wrap; }
+.hearts { display: flex; gap: 2px; }
+.hearts .ico { width: 16px; height: 16px; }
+.diet { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.diet b { color: var(--ink); }
+.needs { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.need { min-width: 0; }
+.need .lbl { display: flex; align-items: center; justify-content: space-between; gap: 4px; font-size: 11px; font-weight: 800; color: var(--ink-soft); }
+.need .lbl span { display: flex; align-items: center; gap: 4px; }
+.need .lbl .ico { width: 14px; height: 14px; }
+.need .lbl i { font-style: normal; font-variant-numeric: tabular-nums; }
+.bar { height: 7px; border-radius: 4px; background: rgba(35, 48, 31, .12); overflow: hidden; margin-top: 3px; }
+.bar i { display: block; height: 100%; border-radius: 4px; transition: width .5s ease, background .5s; }
+.actions { display: flex; gap: 10px; }
+.act { position: relative; width: 92px; border: 0; border-radius: 20px; padding: 10px 6px 8px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 900; font-size: 13px; cursor: pointer; transition: transform .12s, opacity .2s; }
+.act .ico { width: 30px; height: 30px; color: var(--amber-deep); }
+.act:active { transform: scale(.94); }
+.act[disabled] { opacity: .45; cursor: default; }
+.act .hint { font-size: 10.5px; color: var(--ink-soft); font-weight: 800; display: flex; align-items: center; gap: 2px; }
+.act .hint .ico { width: 12px; height: 12px; }
+.act.need-it::after { content: ""; position: absolute; top: 6px; right: 10px; width: 10px; height: 10px; border-radius: 50%; background: var(--bad); box-shadow: 0 0 0 3px rgba(212, 85, 60, .25); }
+.round { width: 58px; height: 58px; border-radius: 20px; border: 0; display: grid; place-items: center; cursor: pointer; }
+.round .ico { width: 28px; height: 28px; color: var(--amber-deep); }
+
+/* food picker */
+.foods { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: min(540px, calc(100vw - 24px)); border-radius: 22px; padding: 12px; z-index: 12; }
+.foods h3 { margin: 0 0 8px; font-family: var(--display); font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+.foods h3 small { font-family: var(--body); font-weight: 700; color: var(--ink-soft); font-size: 12px; }
+.food-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.food { border: 1px solid rgba(35, 48, 31, .1); background: rgba(255, 255, 255, .75); border-radius: 16px; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; font-weight: 800; font-size: 12px; min-width: 0; }
+.food .ico { width: 30px; height: 30px; }
+.food small { display: flex; align-items: center; gap: 2px; color: var(--ink-soft); font-weight: 800; }
+.food small .ico { width: 12px; height: 12px; }
+.food.treat { background: linear-gradient(135deg, #fff3d6, #ffe0a6); }
+.food[disabled] { opacity: .4; cursor: default; }
+.food.empty { opacity: .55; }
+.bubble.res { width: 40px; height: 40px; border: 0; cursor: pointer; padding: 0; background: linear-gradient(135deg, #f4ffe9, #d9f1c4); }
+.bubble.res .ico { width: 24px; height: 24px; }
+.dock button.bump .ico { animation: bump .45s ease; }
+.fishing { position: fixed; z-index: 12; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 12px); transform: translateX(-50%); width: min(380px, calc(100vw - 32px)); border-radius: 22px; padding: 14px 16px; background: var(--glass-strong); display: grid; gap: 10px; text-align: center; }
+body.fishing-on .hud-bottom { opacity: 0; pointer-events: none; transition: opacity .25s; }
+.fishing .ttl { display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--display); font-size: 16px; }
+.fishing .ttl .ico { width: 24px; height: 24px; }
+.fishing p { margin: 0; font-weight: 700; color: var(--ink-soft); line-height: 1.4; }
+.fishing .hook { justify-content: center; font-size: 18px; padding: 14px; background: #8aa2ad; }
+.fishing .hook.hot { background: var(--amber); animation: bump .5s ease infinite; }
+.fishing .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fishing small { display: flex; align-items: center; gap: 4px; font-weight: 800; color: var(--ink-soft); }
+.fishing small .ico { width: 18px; height: 18px; }
+body.fp .hud-bottom, body.fp .dock, body.fp .coach { display: none; }
+#fp-ui .fp-exit { position: fixed; z-index: 13; left: max(12px, env(safe-area-inset-left)); top: calc(env(safe-area-inset-top) + 150px); border: 0; border-radius: 16px; padding: 10px 14px; display: flex; align-items: center; gap: 6px; font-weight: 900; cursor: pointer; }
+#fp-ui .fp-exit .ico { width: 20px; height: 20px; color: var(--amber-deep); }
+#fp-ui .fp-hint { position: fixed; z-index: 13; left: 50%; top: calc(env(safe-area-inset-top) + 86px); transform: translateX(-50%); width: min(520px, calc(100vw - 32px)); border-radius: 16px; padding: 10px 14px; text-align: center; font-weight: 800; font-size: 13px; color: var(--ink-soft); transition: opacity .6s; }
+#fp-ui .fp-hint.gone { opacity: 0; pointer-events: none; }
+#fp-ui .fp-cross { position: fixed; z-index: 4; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: rgba(255, 255, 255, .85); box-shadow: 0 0 0 2px rgba(0, 0, 0, .18); pointer-events: none; }
+#fp-ui .fp-joy { position: fixed; z-index: 13; left: max(24px, env(safe-area-inset-left)); bottom: calc(env(safe-area-inset-bottom) + 24px); width: 132px; height: 132px; border-radius: 50%; background: rgba(255, 255, 255, .28); border: 2px solid rgba(255, 255, 255, .6); backdrop-filter: blur(6px); touch-action: none; display: grid; place-items: center; }
+#fp-ui .fp-joy .knob { width: 58px; height: 58px; border-radius: 50%; background: var(--glass-strong); box-shadow: var(--shadow); pointer-events: none; transition: transform .05s; }
+#fp-ui .fp-act { position: fixed; z-index: 13; right: max(24px, env(safe-area-inset-right)); bottom: calc(env(safe-area-inset-bottom) + 44px); border: 0; border-radius: 22px; padding: 14px 20px; display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 16px; color: #fff; background: var(--amber); box-shadow: var(--shadow); cursor: pointer; }
+#fp-ui .fp-act .ico { width: 28px; height: 28px; background: #fff; border-radius: 10px; padding: 3px; }
+#fp-ui .fp-act[disabled] { background: #9aa39a; cursor: default; }
+body.fishing-on #fp-ui .fp-joy, body.fishing-on #fp-ui .fp-act { display: none; }
+.dock button.walk .ico { color: var(--amber-deep); }
+.b-row { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center; padding: 8px 12px; border-radius: 14px; background: rgba(255, 255, 255, .6); margin-bottom: 6px; }
+.b-row .ico { width: 32px; height: 32px; }
+.b-row small { display: block; color: var(--ink-soft); font-weight: 700; font-size: 12px; line-height: 1.3; }
+.b-row .cnt { font-family: var(--display); font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 3px; }
+.b-row .cnt .ico { width: 16px; height: 16px; }
+
+/* ---------- world overlays ---------- */
+#overlay { position: fixed; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; }
+.bubble { position: absolute; transform: translate(-50%, -100%); width: 46px; height: 46px; border-radius: 50%; background: var(--glass-strong); box-shadow: var(--shadow); display: grid; place-items: center; animation: float 2.4s ease-in-out infinite; transition: opacity .3s; }
+.bubble.urgent { box-shadow: 0 0 0 4px rgba(212, 85, 60, .35), var(--shadow); }
+.bubble.gift { background: linear-gradient(135deg, #fff3d6, #ffd98c); }
+.bubble::after { content: ""; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%) rotate(45deg); width: 12px; height: 12px; background: inherit; border-radius: 2px; }
+.bubble .ico { width: 26px; height: 26px; position: relative; z-index: 1; }
+@keyframes float { 50% { margin-top: -6px; } }
+.tag { position: absolute; transform: translate(-50%, 0); font-size: 12px; font-weight: 900; color: var(--ink); background: var(--glass-strong); padding: 3px 9px; border-radius: 999px; white-space: nowrap; box-shadow: var(--shadow); transition: opacity .2s; }
+.fx { position: absolute; transform: translate(-50%, -50%); font-weight: 900; font-size: 15px; color: var(--amber-deep); text-shadow: 0 1px 0 #fff, 0 0 8px #fff; animation: rise 1.5s ease-out forwards; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+.fx.bad { color: var(--bad); }
+.fx .ico { width: 18px; height: 18px; }
+@keyframes rise { from { opacity: 0; margin-top: 10px; } 15% { opacity: 1; } to { opacity: 0; margin-top: -60px; } }
+.empty-loc { position: fixed; z-index: 6; left: 50%; top: 42%; transform: translate(-50%, -50%); width: min(380px, calc(100vw - 32px)); border-radius: 24px; padding: 18px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.empty-loc b { font-family: var(--display); font-size: 16px; }
+.empty-loc p { margin: 0; color: var(--ink-soft); font-weight: 700; line-height: 1.4; }
+
+/* ---------- coach (tutorial) ---------- */
+.coach { position: fixed; z-index: 20; left: 50%; top: calc(env(safe-area-inset-top) + 86px); transform: translateX(-50%); width: min(460px, calc(100vw - 32px)); border-radius: 20px; padding: 12px 14px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; }
+.coach .face { grid-row: span 2; width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--moss); color: #fff; }
+.coach p { margin: 0; font-weight: 800; font-size: 14px; line-height: 1.35; }
+.coach .row { display: flex; gap: 8px; justify-content: flex-end; }
+.coach button { border: 0; border-radius: 10px; padding: 6px 12px; font-weight: 900; cursor: pointer; background: rgba(35, 48, 31, .08); }
+.coach button.go { background: var(--amber); color: #fff; }
+
+/* ---------- toasts & panels ---------- */
+#toast { position: fixed; z-index: 30; left: 50%; top: calc(env(safe-area-inset-top) + 150px); transform: translateX(-50%); padding: 10px 18px; border-radius: 999px; font-weight: 900; font-size: 14px; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; max-width: calc(100% - 32px); text-align: center; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(4px); }
+.panel-bg { position: fixed; inset: 0; z-index: 40; background: rgba(30, 40, 24, .35); display: grid; place-items: center; padding: 16px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left)); }
+.panel { width: min(580px, 100%); max-height: min(80vh, 700px); overflow: auto; border-radius: 26px; padding: 20px; background: var(--glass-strong); user-select: text; }
+.panel h2 { font-family: var(--display); font-size: 20px; margin: 0 0 4px; }
+.panel h3 { font-family: var(--display); font-size: 14px; margin: 18px 0 8px; }
+.panel .lead { color: var(--ink-soft); font-weight: 700; margin: 0 0 16px; font-size: 14px; line-height: 1.4; }
+.panel .close { float: right; width: 38px; height: 38px; border-radius: 12px; border: 0; background: rgba(35, 48, 31, .08); font-size: 20px; cursor: pointer; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tile { border-radius: 18px; padding: 12px; background: rgba(255, 255, 255, .72); border: 1px solid rgba(35, 48, 31, .08); min-width: 0; text-align: left; font: inherit; color: inherit; }
+.tile b { font-family: var(--display); font-size: 14px; display: block; }
+.tile small { color: var(--ink-soft); font-weight: 700; display: block; line-height: 1.35; }
+.tile.locked { opacity: .6; }
+.tile .pic { height: 64px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 8px; background: linear-gradient(135deg, #f6e3c0, #f0c88a); color: var(--amber-deep); }
+.tile.locked .pic { background: rgba(35, 48, 31, .1); color: var(--ink-soft); }
+.tile .pic .ico { width: 34px; height: 34px; }
+.code-row { display: flex; gap: 8px; }
+.code-row input { flex: 1; min-width: 0; font: 900 16px var(--body); letter-spacing: .08em; text-transform: uppercase; border: 2px solid rgba(35, 48, 31, .15); border-radius: 14px; padding: 10px 12px; background: #fff; }
+.btn { border: 0; border-radius: 14px; padding: 10px 14px; font-weight: 900; background: var(--amber); color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn.ghost { background: rgba(35, 48, 31, .08); color: var(--ink); }
+.btn.danger { background: var(--bad); }
+.btn[disabled] { background: rgba(35, 48, 31, .12); color: var(--ink-soft); cursor: default; }
+.btn .ico { width: 16px; height: 16px; }
+.note { margin-top: 10px; padding: 10px 12px; border-radius: 14px; border: 1.5px dashed rgba(35, 48, 31, .25); font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+.task { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; padding: 12px; border-radius: 16px; background: rgba(255, 255, 255, .72); margin-bottom: 8px; }
+.task .bar { grid-column: 1; }
+.task .btn { grid-row: span 2; }
+.diary { border-radius: 18px; background: rgba(255, 255, 255, .72); padding: 12px 14px; margin-bottom: 10px; }
+.diary header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.diary header b { font-family: var(--display); font-size: 15px; }
+.diary ul { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.diary li { display: grid; grid-template-columns: auto 1fr; gap: 8px; font-size: 14px; line-height: 1.4; }
+.diary li .ico { width: 16px; height: 16px; margin-top: 2px; }
+.diary li.locked { color: var(--ink-soft); font-style: italic; }
+.setting { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(35, 48, 31, .1); font-weight: 800; }
+
+/* ---------- loading ---------- */
+#loading { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: linear-gradient(var(--sky-top), var(--sky-bottom)); transition: opacity .6s; padding: 16px; }
+#loading .box { text-align: center; display: grid; gap: 14px; justify-items: center; }
+#loading h1 { font-family: var(--display); margin: 0; font-size: clamp(20px, 6vw, 26px); }
+#loading .prog { width: 220px; height: 8px; border-radius: 4px; background: rgba(35, 48, 31, .12); overflow: hidden; }
+#loading .prog i { display: block; height: 100%; width: 5%; background: var(--amber); transition: width .3s; }
+#loading p { margin: 0; color: var(--ink-soft); font-weight: 700; }
+.flash { position: fixed; inset: 0; z-index: 60; background: #fff; animation: flash .5s ease-out forwards; pointer-events: none; }
+@keyframes flash { from { opacity: .9; } to { opacity: 0; } }
+body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overlay, body.photo .coach { opacity: 0; pointer-events: none; transition: opacity .3s; }
+
+/* ---------- phones ---------- */
+@media (max-width: 760px) {
+  .hud-top { flex-direction: column; align-items: stretch; gap: 8px; }
+  .res { justify-content: flex-start; }
+  .profile { padding: 6px 12px 6px 6px; }
+  .lvl-ring { width: 42px; height: 42px; }
+  .pill { font-size: 13px; padding: 4px 4px 4px 7px; }
+  .pill .ico { width: 20px; height: 20px; }
+  .pill .plus { width: 20px; height: 20px; font-size: 15px; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 12px; }
+  .dock { top: calc(env(safe-area-inset-top) + 196px); transform: none; padding: 5px; gap: 2px; }
+  .dock button { width: 52px; font-size: 9.5px; padding: 5px 2px 4px; }
+  .dock .ico { width: 21px; height: 21px; }
+  .hud-bottom { grid-template-columns: 1fr auto; gap: 8px; }
+  .hud-bottom .loc { grid-column: 1; grid-row: 2; }
+  .hud-bottom .center { grid-column: 1 / -1; grid-row: 1; }
+  .hud-bottom .round { grid-column: 2; grid-row: 2; width: 52px; height: 52px; }
+  .card { padding: 10px 12px; gap: 4px 10px; }
+  .card .avatar { width: 44px; height: 44px; }
+  .act { width: auto; flex: 1; font-size: 11.5px; padding: 8px 2px 6px; }
+  .act .ico { width: 26px; height: 26px; }
+  .actions { width: 100%; gap: 6px; }
+  .needs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .food-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .clock { font-size: 12px; padding: 6px 10px 6px 8px; margin-top: 6px; }
+  .clock small { display: none; }
+  .coach { top: calc(env(safe-area-inset-top) + 200px); left: calc(50% + 30px); width: min(460px, calc(100vw - 96px)); }
+}
+@media (prefers-reduced-motion: reduce) { .bubble { animation: none; } .fx { animation-duration: .01s; } }
+</style>
+
+<canvas id="scene" aria-label="Заповедник"></canvas>
+<div id="overlay"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-cone" viewBox="0 0 24 24"><path fill="#a0612a" d="M12 2c3.6 2.6 6 6.6 6 11 0 4.5-2.7 8-6 9-3.3-1-6-4.5-6-9 0-4.4 2.4-8.4 6-11z"/><path fill="#d08a43" d="M9 9h6l-3 3zM8.4 13.5h7.2L12 17zM9.4 18h5.2L12 20.6z"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path fill="#6fae3c" d="M20 3C10 3 4 8 4 15c0 2 .6 3.6 1.4 4.6C7 14 11 10 16 8c-4 3-7.6 7-9 12.4C8.4 21.4 10 22 12 22c7 0 9-9 8-19z"/></symbol>
+  <symbol id="i-gem" viewBox="0 0 24 24"><path fill="#8fb8e8" d="M6 3h12l4 6-10 13L2 9z"/><path fill="#c9e0fa" d="M6 3l3 6h6l3-6zM2 9h20l-10 13z" opacity=".55"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 5.5C5.5 4 8.5 4 12 6c3.5-2 6.5-2 9-.5V19c-2.5-1.5-5.5-1.5-9 .5-3.5-2-6.5-2-9-.5zM12 6v13.5"/></symbol>
+  <symbol id="i-paw" viewBox="0 0 24 24"><g fill="currentColor"><ellipse cx="6" cy="10" rx="2.2" ry="2.8"/><ellipse cx="10" cy="6" rx="2.2" ry="2.8"/><ellipse cx="14.5" cy="6" rx="2.2" ry="2.8"/><ellipse cx="18.5" cy="10" rx="2.2" ry="2.8"/><path d="M12.2 11c3 0 6 3.6 6 6.3 0 2-1.6 2.7-3 2.7-1.3 0-2-.7-3-.7s-1.8.7-3.1.7c-1.4 0-2.9-.7-2.9-2.7 0-2.7 3-6.3 6-6.3z"/></g></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 21V4m0 0h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 8h4l2-3h6l2 3h4v11H3z"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M4 8h14l-4-4M20 16H6l4 4"/></symbol>
+  <symbol id="i-pine" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2l5 7h-3l5 7h-4l3 4H6l3-4H5l5-7H7z"/></symbol>
+  <symbol id="i-rock" viewBox="0 0 24 24"><path fill="currentColor" d="M2 20l5-11 3 4 4-9 8 16z"/></symbol>
+  <symbol id="i-brush" viewBox="0 0 24 24"><path fill="currentColor" d="M14 3l7 7-5 5-7-7zM8 9l7 7-2 2c-1 1-3 1-4 0l-.5-.5L5 20H3v-2l2.5-3.5L5 14c-1-1-1-3 0-4z"/></symbol>
+  <symbol id="i-bowl" viewBox="0 0 24 24"><path fill="currentColor" d="M3 12h18c0 4.4-4 8-9 8s-9-3.6-9-8z"/><circle cx="8" cy="9.5" r="2" fill="currentColor"/><circle cx="12" cy="8" r="2.2" fill="currentColor"/><circle cx="16" cy="9.5" r="2" fill="currentColor"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2s7 7.8 7 12.5A7 7 0 0 1 5 14.5C5 9.8 12 2 12 2z"/></symbol>
+  <symbol id="i-ball" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor"/><path fill="none" stroke="#fff6e6" stroke-width="1.8" d="M4 10c5 1 11 1 16-1M5 16c4-2 10-3 15-1M12 3c-2 5-2 13 0 18"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-8-5.2-8-11a4.6 4.6 0 0 1 8-3 4.6 4.6 0 0 1 8 3c0 5.8-8 11-8 11z"/></symbol>
+  <symbol id="i-heart-o" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.4-7 10-7 10z"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2l2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2zM19 16l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/></symbol>
+  <symbol id="i-food" viewBox="0 0 24 24"><path fill="#c2703a" d="M15 3c3.3 0 6 2.7 6 6 0 2.4-1.4 4.4-3.4 5.4L9.6 22.4a2.6 2.6 0 0 1-3.7-3.7l8-8C13 9.4 12 7.4 12 6c0-1.7 1.3-3 3-3z"/></symbol>
+  <symbol id="i-berries" viewBox="0 0 24 24"><path fill="none" stroke="#4f8a32" stroke-width="2" stroke-linecap="round" d="M12 3c0 3 1 5 3 7M12 3c-1 3-3 5-5 6"/><circle cx="7" cy="13" r="4" fill="#3d5fb8"/><circle cx="15.5" cy="14" r="4" fill="#5574c9"/><circle cx="11" cy="18.5" r="3.6" fill="#2f4c9a"/></symbol>
+  <symbol id="i-boot" viewBox="0 0 24 24"><path fill="#a0612a" d="M7 3h6v8l6 3c1.5.8 2 2 2 3.5V19H4V5a2 2 0 0 1 2-2z"/><path fill="#6e4325" d="M4 19h17v2H4z"/><path fill="none" stroke="#f4dcb0" stroke-width="1.4" stroke-linecap="round" d="M8 7h3M8 10h3"/></symbol>
+  <symbol id="i-worm" viewBox="0 0 24 24"><path fill="none" stroke="#d98a8a" stroke-width="3.4" stroke-linecap="round" d="M3.5 15c2-4.5 5-4.5 6.2 0s4.3 4.5 6.3 0c1-2.2 3-2.6 4.3-1"/><circle cx="19.8" cy="13.2" r="0.9" fill="#5a2e2e"/></symbol>
+  <symbol id="i-rod" viewBox="0 0 24 24"><path fill="none" stroke="#8a5a30" stroke-width="2.2" stroke-linecap="round" d="M3 21L17 4"/><path fill="none" stroke="#5a6b78" stroke-width="1" d="M17 4c2 4 3 8 3 11"/><circle cx="20" cy="17" r="2.6" fill="#e04a3a"/><path fill="#fff" d="M17.4 17h5.2a2.6 2.6 0 0 1-5.2 0z"/></symbol>
+  <symbol id="i-basket" viewBox="0 0 24 24"><path fill="#c48a4a" d="M3 10h18l-2 10H5z"/><path fill="none" stroke="#8a5a2a" stroke-width="2" stroke-linecap="round" d="M7 10l3-6M17 10l-3-6M6 14h12M7 17h10"/><circle cx="9" cy="9" r="1.8" fill="#d2384f"/><circle cx="13" cy="8.6" r="1.8" fill="#b52a40"/></symbol>
+  <symbol id="i-fish" viewBox="0 0 24 24"><path fill="#5f9dbb" d="M3 12c3-5 9-6 14-3l4-3v12l-4-3c-5 3-11 2-14-3z"/><circle cx="8" cy="11" r="1.2" fill="#1f3a48"/></symbol>
+  <symbol id="i-meat" viewBox="0 0 24 24"><path fill="#c9563f" d="M14 3c4 0 7 3 7 7s-4 8-9 8c-1.2 0-2-.2-3-.6L6 20a2 2 0 1 1-2-2l2.6-3c-.4-1-.6-1.8-.6-3 0-5 4-9 8-9z"/><circle cx="14" cy="10" r="3" fill="#f0a08a"/></symbol>
+  <symbol id="i-grass" viewBox="0 0 24 24"><path fill="#6f9a38" d="M4 21c1-6 3-10 5-12-1 4-1 8 0 12zM9 21c0-8 2-13 4-17 0 6 1 12 0 17zM14 21c0-5 2-9 6-11-2 3-3 7-3 11z"/></symbol>
+  <symbol id="i-mouse" viewBox="0 0 24 24"><path fill="#9a8a7a" d="M4 15c0-4 3-7 7-7 3 0 5 1.5 6 4l3 1-2 2c0 2-2 3-5 3H8c-2.5 0-4-1-4-3z"/><circle cx="10" cy="8" r="2.4" fill="#b8a898"/><circle cx="15.5" cy="12.5" r=".9" fill="#2b2420"/><path fill="none" stroke="#9a8a7a" stroke-width="1.5" stroke-linecap="round" d="M4.5 15C2 16 2 19 4 20"/></symbol>
+  <symbol id="i-treat" viewBox="0 0 24 24"><path fill="#e8962e" d="M12 3l2.6 5.4 5.9.9-4.3 4.1 1 5.9L12 16.5l-5.2 2.8 1-5.9L3.5 9.3l5.9-.9z"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="12" rx="2" fill="#e2574a"/><rect x="2" y="7" width="20" height="4" rx="1.5" fill="#f07a5e"/><rect x="11" y="7" width="2.4" height="14" fill="#ffd27a"/><path fill="none" stroke="#ffd27a" stroke-width="2" d="M12 7c-2-4-6-3-5 0M12 7c2-4 6-3 5 0"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2.5" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="2.2" d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M12.5 12H21m-3 0v3m-3-3v2"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path fill="currentColor" d="M10.5 2h3l.5 2.6 2 .9 2.3-1.5 2.1 2.1-1.5 2.3.9 2 2.6.5v3l-2.6.5-.9 2 1.5 2.3-2.1 2.1-2.3-1.5-2 .9-.5 2.6h-3l-.5-2.6-2-.9-2.3 1.5-2.1-2.1 1.5-2.3-.9-2L2 13.5v-3l2.6-.5.9-2L4 5.7l2.1-2.1 2.3 1.5 2-.9zM12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path fill="currentColor" d="M15 4l5 5-11 11H4v-5zM13 6l5 5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#f2b23a"/><g stroke="#f2b23a" stroke-width="2" stroke-linecap="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></g></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path fill="#7d8fd6" d="M20 15.5A8.5 8.5 0 0 1 8.5 4a8.5 8.5 0 1 0 11.5 11.5z"/></symbol>
+  <symbol id="i-sunset" viewBox="0 0 24 24"><path fill="#ef8a4a" d="M5 17a7 7 0 0 1 14 0z"/><path stroke="#ef8a4a" stroke-width="2" stroke-linecap="round" d="M2 20h20M12 4v3M4.6 9.6l2 1.4M19.4 9.6l-2 1.4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 12l5 5 9-10"/></symbol>
+</svg>
+
+<header class="hud-top">
+  <div class="left-col">
+  <div class="profile glass">
+    <div class="lvl-ring" aria-hidden="true">
+      <svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="22" fill="none" stroke="rgba(35,48,31,.12)" stroke-width="5"/><circle id="xp-ring" cx="26" cy="26" r="22" fill="none" stroke="#e8962e" stroke-width="5" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2"/></svg>
+      <div class="num" id="lvl">1</div>
+    </div>
+    <div style="min-width:0">
+      <div class="name" id="reserve-name">Мой заповедник</div>
+      <div class="sub" id="xp-text">0 / 100 опыта</div>
+    </div>
+  </div>
+  <div class="clock glass" id="clock" title="Время суток в заповеднике"></div>
+  </div>
+  <div class="res">
+    <button class="pill glass" type="button" id="p-cones" title="Шишки: на них покупается корм"><svg class="ico"><use href="#i-cone"/></svg><span>0</span><b class="plus">+</b></button>
+    <button class="pill glass" type="button" id="p-leaves" title="Листики благодарности: за них — лакомства"><svg class="ico"><use href="#i-leaf"/></svg><span>0</span><b class="plus">+</b></button>
+    <button class="pill glass" type="button" id="p-gems" title="Кристаллы: за новые уровни"><svg class="ico"><use href="#i-gem"/></svg><span>0</span><b class="plus">+</b></button>
+    <button class="icon-btn glass" type="button" id="settings-btn" aria-label="Настройки"><svg class="ico"><use href="#i-gear"/></svg></button>
+  </div>
+</header>
+
+<nav class="dock glass" aria-label="Меню">
+  <button type="button" data-panel="diary"><svg class="ico"><use href="#i-book"/></svg>Дневник<span class="badge" id="diary-badge" hidden>!</span></button>
+  <button type="button" data-panel="collection"><svg class="ico"><use href="#i-paw"/></svg>Коллекция</button>
+  <button type="button" data-panel="basket"><svg class="ico"><use href="#i-basket"/></svg>Корзинка</button>
+  <button type="button" data-panel="walk" class="walk"><svg class="ico"><use href="#i-boot"/></svg>Прогулка</button>
+  <button type="button" data-panel="tasks"><svg class="ico"><use href="#i-flag"/></svg>Задания<span class="badge" id="task-badge" hidden>1</span></button>
+  <button type="button" data-panel="map"><svg class="ico"><use href="#i-map"/></svg>Карта</button>
+</nav>
+
+<div class="coach glass" id="coach" hidden></div>
+<div class="empty-loc glass" id="empty-loc" hidden></div>
+
+<footer class="hud-bottom">
+  <button class="loc glass" type="button" id="loc-btn">
+    <span class="thumb" id="loc-thumb"><svg class="ico"><use href="#i-pine"/></svg></span>
+    <span><b id="loc-name">Лесная поляна</b><span>Сменить участок</span></span>
+    <svg class="ico" style="color:var(--amber-deep)"><use href="#i-swap"/></svg>
+  </button>
+  <div class="center">
+    <div class="foods glass" id="foods" hidden></div>
+    <div class="card glass empty" id="card">Нажми на животное, чтобы позаботиться о нём</div>
+    <div class="actions">
+      <button class="act glass" type="button" data-act="clean"><svg class="ico"><use href="#i-brush"/></svg>Почистить<span class="hint">чистота</span></button>
+      <button class="act glass" type="button" data-act="feed"><svg class="ico"><use href="#i-bowl"/></svg>Накормить<span class="hint">выбрать еду</span></button>
+      <button class="act glass" type="button" data-act="water"><svg class="ico"><use href="#i-drop"/></svg>Напоить<span class="hint">к водопою</span></button>
+      <button class="act glass" type="button" data-act="play"><svg class="ico"><use href="#i-ball"/></svg>Поиграть<span class="hint">настроение</span></button>
+    </div>
+  </div>
+  <button class="round glass" type="button" id="photo-btn" aria-label="Сделать фото"><svg class="ico"><use href="#i-cam"/></svg></button>
+</footer>
+
+<div class="fishing glass" id="fishing" hidden></div>
+<div id="fp-ui" hidden>
+  <button class="fp-exit glass" type="button" id="fp-exit"><svg class="ico"><use href="#i-map"/></svg>На карту</button>
+  <div class="fp-hint glass" id="fp-hint">Иди джойстиком или клавишами WASD · Смотри, ведя пальцем по экрану · Нажимай на ягоды, траву и червяков</div>
+  <div class="fp-cross"></div>
+  <div class="fp-joy" id="fp-joy"><div class="knob" id="fp-knob"></div></div>
+  <button class="fp-act" type="button" id="fp-act" hidden></button>
+</div>
+<div id="toast" class="glass" role="status" aria-live="polite"></div>
+<div class="panel-bg" id="panel-bg" hidden><section class="panel" id="panel" role="dialog" aria-modal="true"></section></div>
+
+<div id="loading"><div class="box"><h1>Мой заповедник</h1><div class="prog"><i id="load-bar"></i></div><p id="load-text">Сажаем деревья…</p></div></div>
+
+<script src="profile.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/* ======================================================================= data */
+const FOODS = {
+  berries: { name: 'Ягоды', icon: 'i-berries', plant: true, gather: true, where: 'Собери ягоды на кустах.' },
+  grass:   { name: 'Травы', icon: 'i-grass', plant: true, gather: true, where: 'Нарви травы на Скалистом склоне.' },
+  worms:   { name: 'Черви', icon: 'i-worm', gather: true, where: 'Накопай червей в земляных кочках.' },
+  fish:    { name: 'Рыба', icon: 'i-fish', gather: true, where: 'Налови рыбы с мостков у пруда.' },
+  meat:    { name: 'Мясо', icon: 'i-meat', cost: 6 },
+  mouse:   { name: 'Мышь', icon: 'i-mouse', cost: 4 }
+};
+const SPECIES = {
+  filin: { active: 'night', name: 'Филин', latin: 'Bubo bubo', height: 1.25, speed: 0, file: 'm-filin.js', idleClip: 'Idle_Folded', home: 'shaitan', code: 'НОЧЬ',
+    diet: ['mouse', 'meat'], dietText: 'грызунов, зайцев и птиц',
+    wrong: { worms: 'Филину нужна добыча покрупнее: червяки ему не еда.', plant: 'Филин — хищная птица, растения он не ест.', fish: 'Филин ловит в основном грызунов и зайцев, рыба ему почти не нужна.' },
+    clips: { eat: 'Perch_Flap_Once', refuse: 'Perch_Flap_Once', play: 'Perch_Open_Flap_Fold', clean: 'Perch_Flap_Once', idle: ['Perch_Flap_Once', 'fly', 'Perch_Open_Flap_Fold', 'fly'] },
+    facts: ['Филин — самая крупная сова России: размах крыльев до 1,9 метра.',
+      'Голову он поворачивает почти на 270 градусов, потому что глаза у него неподвижные.',
+      'Летает бесшумно: мягкая бахрома на краях перьев гасит звук взмаха.',
+      '«Ушки» филина — это пучки перьев. Настоящие уши спрятаны по бокам головы.',
+      'Филин — редкий вид и охраняется законом.'] },
+  baibak: { active: 'day', name: 'Сурок-байбак', latin: 'Marmota bobak', height: 0.78, speed: 0.75, file: 'm-baibak.js', home: 'shaitan', code: 'НОРА',
+    diet: ['grass'], dietText: 'травы и молодые побеги',
+    wrong: { worms: 'Байбак травоядный: червей он не ест, ему нужны травы.', berries: 'В степи байбак ест травы и побеги, ягод там почти нет.', animal: 'Байбак — травоядный, мясо и рыбу он не ест.' },
+    clips: { eat: 'Eat', refuse: 'LookAround', play: 'TailWag', clean: 'Sniff', idle: ['Stand', 'LookAround', 'Sniff', 'Eat'] },
+    facts: ['Байбак — степной сурок, родственник белки.',
+      'Живёт большими семьями в норах, которые роет сам.',
+      'Часовые встают «столбиком» и свистом предупреждают всех об опасности.',
+      'Зимой байбак спит в норе почти полгода.',
+      'Байбаки перекапывают степную почву и помогают ей оставаться плодородной.'] },
+  medved: { active: 'any', name: 'Бурый медведь', latin: 'Ursus arctos', height: 1.65, speed: 0.9, file: 'm-medved.js', home: 'bor', code: 'БЕРЛОГА',
+    diet: ['berries', 'fish', 'grass', 'worms', 'meat'], dietText: 'почти всё: ягоды, рыбу, травы, червей и личинок, мясо',
+    wrong: { mouse: 'Мышь слишком мала: медведю нужно много еды, ему не до мышей.' },
+    clips: { eat: 'Eat', refuse: 'Shake', play: 'Sniff', clean: 'Shake', idle: ['LookAround', 'Sniff', 'Shift', 'Roar'] },
+    facts: ['Бурый медведь — один из крупнейших хищников суши, весит до 400 килограммов.',
+      'Он всеяден: ест ягоды, коренья, рыбу, мёд и насекомых.',
+      'Нюх у медведя во много раз острее, чем у собаки.',
+      'Зимой медведь спит в берлоге и несколько месяцев ничего не ест.',
+      'Несмотря на вес, медведь бегает со скоростью до 50 км/ч.'] },
+  rys: { active: 'dusk', name: 'Рысь', latin: 'Lynx lynx', height: 1.15, speed: 1.1, file: 'm-rys.js', home: 'bor', code: 'КИСТОЧКИ',
+    diet: ['meat', 'mouse'], dietText: 'зайцев, птиц и мелких зверей',
+    wrong: { worms: 'Рысь охотится на зайцев и птиц, червяки ей не интересны.', plant: 'Рысь — хищник, растения она не ест.', fish: 'Рысь охотится на зайцев и птиц, рыбу почти не ловит.' },
+    clips: { eat: 'Eat', refuse: 'EarTwitch', play: 'Hunt', clean: 'TailFlick', idle: ['Hunt', 'LookAround', 'EarTwitch', 'TailFlick'] },
+    facts: ['Рысь — крупная лесная кошка с кисточками на ушах.',
+      'Охотится из засады: долго ждёт, а потом делает стремительный прыжок.',
+      'Широкие мохнатые лапы работают как снегоступы.',
+      'В темноте рысь видит во много раз лучше человека.',
+      'Рысь может прыгнуть на 4 метра в длину.'] },
+  sapsan: { active: 'day', name: 'Сапсан', latin: 'Falco peregrinus', height: 0.85, speed: 0, file: 'm-sapsan.js', idleClip: 'Idle_Folded', home: 'shaitan', code: 'СКАЛА',
+    diet: ['meat'], dietText: 'птиц, которых ловит прямо в воздухе',
+    wrong: { mouse: 'Сапсан ловит птиц прямо в полёте, мыши ему почти не попадаются.', worms: 'Червяки сапсану не нужны: он охотится на птиц.', plant: 'Сапсан — хищная птица, растения он не ест.', fish: 'Сапсан охотится на птиц, рыбу он не ловит.' },
+    clips: { eat: 'Perch_Flap_Once', refuse: 'Perch_Flap_Once', play: 'Perch_Open_Flap_Fold', clean: 'Perch_Flap_Once', idle: ['Perch_Flap_Once', 'fly', 'Perch_Open_Flap_Fold', 'fly'] },
+    facts: ['Сапсан — самая быстрая птица на свете: в пике он разгоняется больше чем до 300 км/ч.',
+      'Добычу он высматривает с высоты, а потом складывает крылья и камнем падает вниз.',
+      'Гнездится на уступах высоких скал, иногда даже на крышах высоток в городах.',
+      'Самки сапсана заметно крупнее самцов, иногда почти в полтора раза.',
+      'Сапсан занесён в Красную книгу России.'] }
+};
+const LOCATIONS = {
+  bor: { name: 'Лесная поляна', nameGen: 'Лесной поляны', icon: 'i-pine', thumb: '#5f8a3a', grass: 0x6e9a2f, grassDark: 0x557d24, grassLight: 0x93b44a, path: 0xb39466, cliff: 0x7a5a38, cliffDark: 0x5e4329, animals: ['medved', 'rys'], sky: [0xcfe6c8, 0xf4e7c8],
+    desc: 'Лесистый склон Шайтан-Тау: тенистые деревья, родник у камней и домик лесника.' },
+  shaitan: { name: 'Скалистый склон', nameGen: 'Скалистого склона', icon: 'i-rock', thumb: '#b5603d', grass: 0xb6a54c, grassDark: 0x948a3c, grassLight: 0xd3c47a, path: 0xc99a6a, cliff: 0x9a5034, cliffDark: 0x7a3d27, animals: ['baibak', 'filin', 'sapsan'], sky: [0xf1dcc0, 0xf7ead2],
+    desc: 'Степной склон Шайтан-Тау: красные скалы, ковыль и норы байбаков.' }
+};
+const SOON = [{ name: 'Степной орёл', where: 'Шайтан-Тау' }, { name: 'Корсак', where: 'Шайтан-Тау' }];
+const NEED_LIST = [['food', 'Сытость', 'i-food'], ['water', 'Вода', 'i-drop'], ['mood', 'Настроение', 'i-heart'], ['clean', 'Чистота', 'i-spark']];
+const ACT_NEED = { feed: 'food', water: 'water', play: 'mood', clean: 'clean' };
+const DECAY = { food: 1.2, water: 1.5, mood: 0.8, clean: 0.6 };     // points per minute
+const FULL = 92;                                                     // above this the animal refuses ("уже сыт")
+const TREAT_COST = 12;                                               // leaves
+const GIFT_EVERY = 75;                                               // seconds between gifts of a happy animal
+const TASKS = [
+  { id: 'feedRight', text: 'Накорми животных правильной едой 3 раза', goal: 3, reward: ['leaves', 10] },
+  { id: 'water3', text: 'Отведи животных на водопой 3 раза', goal: 3, reward: ['cones', 25] },
+  { id: 'gift3', text: 'Собери 3 подарка от довольных животных', goal: 3, reward: ['gems', 1] },
+  { id: 'friend1', text: 'Подружись сильнее и узнай новый факт', goal: 1, reward: ['leaves', 12] },
+  { id: 'gather5', text: 'Добудь еду сам: собери, накопай или поймай 5 раз', goal: 5, reward: ['cones', 20] },
+  { id: 'photo1', text: 'Сделай фото заповедника', goal: 1, reward: ['cones', 15] }
+];
+const EXCHANGE = [
+  { id: 'cones', give: ['gems', 1], get: ['cones', 40], text: 'Мешок шишек' },
+  { id: 'leaves', give: ['gems', 1], get: ['leaves', 15], text: 'Охапка листиков' }
+];
+
+/* ======================================================================= state */
+const PLAYER = window.Profile ? Profile.current() : null;
+const SAVE_KEY = window.Profile ? Profile.key('zapovednik.save.v2') : 'zapovednik.save.v2';
+const AR_KEY = window.Profile ? Profile.key('shaitantau.collection.v1') : 'shaitantau.collection.v1';            // written by the AR site when a QR card is scanned
+const fresh = () => ({ lvl: 1, xp: 0, cones: 60, leaves: 6, gems: 2, loc: 'shaitan', t: Date.now(), names: {}, unlocked: ['filin'],
+  needs: Object.fromEntries(Object.keys(SPECIES).map((k, i) => [k, { food: 38 + i * 9, water: 44 + i * 7, mood: 66 - i * 5, clean: 58 + i * 6 }])),
+  friend: Object.fromEntries(Object.keys(SPECIES).map((k) => [k, 0])), knowDiet: {}, nextGift: {}, seenFacts: {},
+  tasks: { day: new Date().toDateString(), prog: {}, done: {} }, pantry: { berries: 2, grass: 3, worms: 2, fish: 1 }, res: {}, seenGather: {}, tut: 0, sound: true, cycle: true, streak: { last: '', n: 0 } });
+let S = fresh();
+const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ignore */ } } };
+(function load() {
+  const raw = store.get(SAVE_KEY);
+  if (raw && raw.needs) { S = Object.assign(fresh(), raw); for (const k in SPECIES) { S.needs[k] = S.needs[k] || fresh().needs[k]; if (S.friend[k] == null) S.friend[k] = 0; } }
+  const ar = store.get(AR_KEY) || {};                  // animals found with the AR cards join the reserve with the names given there
+  for (const id in ar) if (SPECIES[id]) { if (!S.unlocked.includes(id)) S.unlocked.push(id); if (ar[id].name && !S.names[id]) S.names[id] = ar[id].name; }
+  if (S.tasks.day !== new Date().toDateString()) S.tasks = { day: new Date().toDateString(), prog: {}, done: {} };
+  const min = Math.min(180, (Date.now() - (S.t || Date.now())) / 60000);   // time passes while the game is closed (soft, capped)
+  for (const k in S.needs) for (const n in DECAY) S.needs[k][n] = Math.max(8, S.needs[k][n] - DECAY[n] * min * 0.3);
+  const FROM = new URLSearchParams(location.search).get('from'); if (FROM && SPECIES[FROM]) S.loc = SPECIES[FROM].home;
+  if (location.hash.includes('shaitan')) S.loc = 'shaitan'; else if (location.hash.includes('bor')) S.loc = 'bor';
+})();
+function checkDaily() {
+  const today = new Date().toDateString(); if (S.streak.last === today) return null;
+  const y = new Date(Date.now() - 86400000).toDateString();
+  S.streak.n = S.streak.last === y ? S.streak.n + 1 : 1; S.streak.last = today;
+  const n = Math.min(S.streak.n, 7); const reward = 10 + n * 5; S.cones += reward; if (n === 7) S.gems += 1;
+  return { n: S.streak.n, reward, gem: n === 7 };
+}
+function save() { S.t = Date.now(); store.set(SAVE_KEY, S); }
+setInterval(save, 5000);
+addEventListener('pagehide', save);
+
+/* ======================================================================= helpers */
+const $ = (id) => document.getElementById(id);
+const svg = (id, color) => `<svg class="ico" style="color:${color || 'currentColor'}"><use href="#${id}"/></svg>`;
+function rng(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const nameOf = (id) => S.names[id] || SPECIES[id].name;
+const hearts = (id) => Math.min(4, Math.floor(S.friend[id] / 25));
+const isUnlocked = (id) => S.unlocked.includes(id);
+let toastT;
+function toast(msg, ms) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms || 2600); }
+
+/* ---------- sound: tiny WebAudio synth, starts after the first tap ---------- */
+let AC = null;
+function sfx(kind) {
+  if (!S.sound) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const notes = { tap: [[660, .05]], ok: [[660, .08], [880, .12]], coin: [[988, .06], [1318, .12]], no: [[300, .12], [240, .16]], heart: [[523, .1], [659, .1], [784, .18]], level: [[523, .1], [659, .1], [784, .1], [1046, .25]], whoosh: [[200, .2]] }[kind] || [[600, .05]];
+    let t = AC.currentTime;
+    for (const [f, d] of notes) {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = kind === 'no' ? 'triangle' : 'sine'; o.frequency.setValueAtTime(f, t);
+      if (kind === 'whoosh') o.frequency.exponentialRampToValueAtTime(600, t + d);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g).connect(AC.destination); o.start(t); o.stop(t + d + 0.02); t += d * 0.85;
+    }
+  } catch (e) { /* audio not available */ }
+}
+
+/* ======================================================================= three.js scene */
+const canvas = $('scene');
+const MOBILE = Math.min(innerWidth, innerHeight) < 600;
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !MOBILE, alpha: true });
+renderer.setPixelRatio(Math.min(MOBILE ? 1.6 : 2, window.devicePixelRatio || 1));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.82;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xf2e6c8, 55, 110);
+const camera = new THREE.PerspectiveCamera(MOBILE ? 40 : 32, 1, 0.1, 200);
+camera.position.set(17, 17, 21);
+if (innerWidth / innerHeight < 0.8) camera.position.multiplyScalar(1.35);   // portrait phones: step back to see the whole island
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.target.set(0, 0.6, 0); controls.enablePan = false; controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 9; controls.maxDistance = 48; controls.minPolarAngle = 0.55; controls.maxPolarAngle = 1.15;
+controls.rotateSpeed = 0.6;
+
+const hemi = new THREE.HemisphereLight(0xfff4dc, 0x5a4a30, 0.55); scene.add(hemi);
+const fill = new THREE.DirectionalLight(0x9fc4ff, 0.35); fill.position.set(-14, 9, -10); scene.add(fill);   // cool bounce light from the sky side
+const sun = new THREE.DirectionalLight(0xffe2b0, 1.45);
+sun.position.set(12, 22, 8); sun.castShadow = true;
+sun.shadow.mapSize.set(MOBILE ? 1024 : 2048, MOBILE ? 1024 : 2048);
+Object.assign(sun.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15, near: 1, far: 60 });
+sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.03;
+scene.add(sun); scene.add(sun.target);
+
+/* sky dome: vertical gradient, stars at night */
+const skyMat = new THREE.ShaderMaterial({
+  uniforms: { top: { value: new THREE.Color(0x9fd0ee) }, bottom: { value: new THREE.Color(0xf3ead2) } },
+  vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: 'uniform vec3 top; uniform vec3 bottom; varying vec3 vP; void main(){ float h = normalize(vP).y; gl_FragColor = vec4(mix(bottom, top, smoothstep(-0.05, 0.55, h)), 1.0); }',
+  side: THREE.BackSide, depthWrite: false, fog: false
+});
+const sky = new THREE.Mesh(new THREE.SphereGeometry(140, 24, 12), skyMat); scene.add(sky);
+const stars = (() => {
+  const n = 260, arr = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { const u = Math.random() * 6.28, v = 0.08 + Math.random() * 0.9; arr.set([Math.cos(u) * Math.cos(v) * 120, Math.sin(v) * 120, Math.sin(u) * Math.cos(v) * 120], i * 3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  const p = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 1.3, sizeAttenuation: true, transparent: true, opacity: 0, fog: false, depthWrite: false }));
+  scene.add(p); return p;
+})();
+
+/* day and night: one full day lasts 10 minutes */
+const DAY_LEN = 600;
+// t, skyTop, skyBottom, sunColor, sunInt, hemiSky, hemiGround, hemiInt, fog, exposure
+const DAY_KEYS = [
+  [0.00, 0xf0a985, 0xfde0bd, 0xffb27a, 0.85, 0xffd9b0, 0x5a4a30, 0.45, 0xf6d6b8, 0.84],
+  [0.08, 0x7fbde8, 0xd8ecf0, 0xffe6bf, 1.55, 0xfff4dc, 0x5a4a30, 0.58, 0xdfeae6, 0.84],
+  [0.55, 0x7fbde8, 0xd8ecf0, 0xffe6bf, 1.55, 0xfff4dc, 0x5a4a30, 0.58, 0xdfeae6, 0.84],
+  [0.63, 0xe2805a, 0xf8c48a, 0xff9a52, 1.05, 0xffc690, 0x4a3a28, 0.5, 0xf0b688, 0.86],
+  [0.70, 0x16213f, 0x34416a, 0x9fb2ff, 0.45, 0x7a8ccc, 0x22283a, 0.5, 0x2a3454, 1.05],
+  [0.95, 0x16213f, 0x34416a, 0x9fb2ff, 0.45, 0x7a8ccc, 0x22283a, 0.5, 0x2a3454, 1.05],
+  [1.00, 0xf0a985, 0xfde0bd, 0xffb27a, 0.85, 0xffd9b0, 0x5a4a30, 0.45, 0xf6d6b8, 0.84]
+];
+let DAY_SHIFT = 0;                                          // #night / #dusk in the address jump to that time (for testing and demos)
+if (/night|dusk|day/.test(location.hash)) { const want = location.hash.includes('night') ? 0.8 : location.hash.includes('dusk') ? 0.6 : 0.3; DAY_SHIFT = (want - ((Date.now() / 1000) % DAY_LEN) / DAY_LEN) * DAY_LEN; }
+const dayT = () => S.cycle ? ((((Date.now() / 1000 + DAY_SHIFT) % DAY_LEN) + DAY_LEN) % DAY_LEN) / DAY_LEN : 0.3;
+const isNight = () => { const t = dayT(); return t > 0.67 && t < 0.97; };
+const isDusk = () => { const t = dayT(); return (t > 0.58 && t < 0.72) || t > 0.95 || t < 0.06; };
+const _ca = new THREE.Color(), _cb = new THREE.Color();
+function lerpHex(a, b, k, out) { return out.copy(_ca.setHex(a)).lerp(_cb.setHex(b), k); }
+function updateDay() {
+  const t = dayT();
+  let i = 0; while (i < DAY_KEYS.length - 2 && t > DAY_KEYS[i + 1][0]) i++;
+  const A = DAY_KEYS[i], B = DAY_KEYS[i + 1]; const k = Math.min(1, Math.max(0, (t - A[0]) / (B[0] - A[0])));
+  lerpHex(A[1], B[1], k, skyMat.uniforms.top.value); lerpHex(A[2], B[2], k, skyMat.uniforms.bottom.value);
+  lerpHex(A[3], B[3], k, sun.color); sun.intensity = A[4] + (B[4] - A[4]) * k;
+  lerpHex(A[5], B[5], k, hemi.color); lerpHex(A[6], B[6], k, hemi.groundColor); hemi.intensity = A[7] + (B[7] - A[7]) * k;
+  lerpHex(A[8], B[8], k, scene.fog.color);
+  renderer.toneMappingExposure = A[9] + (B[9] - A[9]) * k;
+  const az = t * Math.PI * 2;                            // the sun (and later the moon) walks around the island
+  sun.position.set(Math.cos(az) * 15, 21, Math.sin(az) * 15);
+  const night = isNight();
+  stars.material.opacity += ((night ? 0.9 : 0) - stars.material.opacity) * 0.05;
+  fill.intensity = night ? 0.15 : 0.35;
+  for (const m of windowMats) m.emissiveIntensity = night ? 2.4 : 0.7;
+  if (windowMats.lamp) windowMats.lamp.intensity = night ? 1.8 : 0;
+  return night;
+}
+function renderClock() {
+  const t = dayT(); const night = isNight();
+  const phase = !S.cycle ? ['i-sun', 'День', 'смена дня выключена'] : night ? ['i-moon', 'Ночь', 'до утра'] : t >= 0.55 && t <= 0.67 ? ['i-sunset', 'Вечер', 'скоро ночь'] : t >= 0.97 || t < 0.08 ? ['i-sunset', 'Утро', 'просыпаемся'] : ['i-sun', 'День', 'до вечера'];
+  let left = '';
+  if (S.cycle) {
+    const target = night ? 0.97 : t < 0.55 ? 0.55 : t <= 0.67 ? 0.67 : 1.0;
+    const sec = Math.max(0, Math.round(((target - t + 1) % 1) * DAY_LEN));
+    left = ` · ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  }
+  $('clock').innerHTML = `${svg(phase[0])}<span>${phase[1]}<small> ${phase[2]}${left}</small></span>`;
+}
+
+const flat = (color, opts) => new THREE.MeshStandardMaterial(Object.assign({ color, flatShading: true, roughness: 0.9, metalness: 0 }, opts || {}));
+function shade(obj) { obj.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } }); return obj; }
+// watertight jitter: vertices that share a position get the same offset, so seams never open
+function jitter(geo, amt, r) {
+  const p = geo.attributes.position, seed = r() * 1000, map = new Map();
+  for (let i = 0; i < p.count; i++) {
+    const k = p.getX(i).toFixed(3) + ',' + p.getY(i).toFixed(3) + ',' + p.getZ(i).toFixed(3);
+    let o = map.get(k);
+    if (!o) {
+      const n = map.size;
+      const h = (c) => { const v = Math.sin(c * 12.9898 + seed * 78.233 + n * 37.719) * 43758.5453; return v - Math.floor(v) - 0.5; };
+      o = [h(1) * amt, h(2) * amt, h(3) * amt]; map.set(k, o);
+    }
+    p.setXYZ(i, p.getX(i) + o[0], p.getY(i) + o[1], p.getZ(i) + o[2]);
+  }
+  geo.computeVertexNormals(); return geo;
+}
+
+let world = null;          // group with everything of the current location
+let obstacles = [];        // [{x, z, r}] circles animals walk around
+let pond = null;           // {x, z, r, mesh}
+const ISLAND_R = 11;
+const CAM_ANGLE = Math.atan2(21, 17);   // direction from the island centre toward the default camera
+
+function makePine(r, h, dark) {
+  const g = new THREE.Group(), bark = flat(0x6b4426);
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.07 * h, 0.11 * h, h * 0.42, 7), bark); trunk.position.y = h * 0.21; g.add(trunk);
+  const flare = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * h, 0.17 * h, h * 0.07, 7), bark); flare.position.y = h * 0.035; g.add(flare);
+  const greens = dark ? [0x2f5a2c, 0x376630, 0x3f7235, 0x4b8040] : [0x3f6e30, 0x4a7c36, 0x568a3d, 0x649746];
+  const tiers = 4;
+  for (let i = 0; i < tiers; i++) {
+    const t = i / (tiers - 1), rad = h * (0.4 - t * 0.24), ht = h * (0.42 - t * 0.1);
+    // closed profile: tip -> drooping rim -> underside back to the trunk (no open edges, no flat disk)
+    const prof = [new THREE.Vector2(0.06 * h, ht * 0.16), new THREE.Vector2(rad * 0.6, ht * 0.03), new THREE.Vector2(rad, -ht * 0.06), new THREE.Vector2(rad * 0.9, ht * 0.08), new THREE.Vector2(rad * 0.45, ht * 0.55), new THREE.Vector2(0, ht)];
+    const c = new THREE.Mesh(jitter(new THREE.LatheGeometry(prof, 8), 0.03 * h, r), flat(greens[i], { side: THREE.DoubleSide }));
+    c.position.y = h * (0.34 + t * 0.48); c.rotation.y = r() * 3;
+    c.scale.set(1 + (r() - .5) * 0.12, 1, 1 + (r() - .5) * 0.12); g.add(c);
+  }
+  return shade(g);
+}
+// one closed mesh from stacked rings: points are made once and shared by every face touching them,
+// so the surface can never crack. profile: [[y, radius, colorOfBandAbove], ...] bottom to top
+function makePrism(profile, segs, wob, r) {
+  const rings = profile.map(([y, rad], i) => {
+    const pts = [];
+    for (let j = 0; j < segs; j++) {
+      const a = j / segs * Math.PI * 2 + (r() - .5) * 0.25 / segs * 6, k = rad * (1 + (r() - .5) * wob);
+      const dy = i > 0 && i < profile.length - 1 ? (r() - .5) * 0.06 : 0;
+      pts.push(new THREE.Vector3(Math.cos(a) * k, y + dy, Math.sin(a) * k));
+    }
+    return pts;
+  });
+  const pos = [], col = [], c = new THREE.Color();
+  const tri = (a, b, d, hex) => { c.setHex(hex); for (const v of [a, b, d]) { pos.push(v.x, v.y, v.z); col.push(c.r, c.g, c.b); } };
+  for (let i = 0; i < rings.length - 1; i++) for (let j = 0; j < segs; j++) {
+    const a = rings[i][j], b = rings[i][(j + 1) % segs], cc = rings[i + 1][(j + 1) % segs], d = rings[i + 1][j];
+    tri(a, cc, b, profile[i][2]); tri(a, d, cc, profile[i][2]);
+  }
+  const top = rings[rings.length - 1], bot = rings[0], last = profile[profile.length - 1];
+  const T = new THREE.Vector3(0, last[0] + 0.04, 0), B = new THREE.Vector3(0, profile[0][0], 0);
+  for (let j = 0; j < segs; j++) { tri(T, top[(j + 1) % segs], top[j], last[2]); tri(B, bot[j], bot[(j + 1) % segs], profile[0][2]); }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  geo.computeVertexNormals();
+  return shade(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.92, metalness: 0 })));
+}
+function makeRock(size, color, r) {
+  const m = new THREE.Mesh(jitter(new THREE.IcosahedronGeometry(size, 1), size * 0.26, r), flat(color));
+  m.scale.y = 0.65 + r() * 0.25; m.rotation.y = r() * 6; m.position.y = size * 0.35;
+  return shade(m);
+}
+function makeTuft(color, r) {
+  const g = new THREE.Group();
+  for (let i = 0; i < 5; i++) {
+    const b = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.5 + r() * 0.4, 3), flat(color));
+    b.position.set((r() - .5) * 0.3, 0.25, (r() - .5) * 0.3); b.rotation.set((r() - .5) * 0.6, r() * 3, (r() - .5) * 0.6); g.add(b);
+  }
+  return shade(g);
+}
+function makeCabin() {
+  const g = new THREE.Group();
+  const W = 3.2, D = 2.6, LR = 0.13, STEP = 0.235, ROWS = 8, EXT = 0.24;
+  const HW = 0.18 + ROWS * STEP, HR = HW + 1.35;
+  const logA = flat(0x8f5c33), logB = flat(0x9e6a3c), endM = flat(0xd2a46a), dark = flat(0x5e3b20), roofM = flat(0x6b4630), roofA = flat(0x55372a), roofB = flat(0x664332), stone = flat(0x8a8178), stone2 = flat(0x9a9188);
+  const log = (len, x, y, z, alongX, mat, rad) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(rad || LR, rad || LR, len, 8), [mat, endM, endM]);
+    if (alongX) m.rotation.z = Math.PI / 2; else m.rotation.x = Math.PI / 2;
+    m.position.set(x, y, z); g.add(m); return m;
+  };
+  const box = (w, h, d, x, y, z, mat) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); g.add(m); return m; };
+  // stone footing
+  box(W + 0.1, 0.2, D + 0.1, 0, 0.08, 0, stone);
+  const door = { x0: -1.0, x1: -0.2, top: 1.5 }, win = { x0: 0.45, x1: 1.2, y0: 0.85, y1: 1.5 };
+  for (let i = 0; i < ROWS; i++) {
+    const mat = i % 2 ? logA : logB, mat2 = i % 2 ? logB : logA;
+    const yx = 0.18 + LR + i * STEP, yz = yx + STEP / 2;      // front/back and side logs interlock half a log apart
+    log(W + EXT * 2, 0, yx, -D / 2, true, mat);                // back wall
+    // front wall, cut around the door and the window
+    const cuts = [];
+    if (yx - LR < door.top) cuts.push([door.x0, door.x1]);
+    if (yx + LR > win.y0 && yx - LR < win.y1) cuts.push([win.x0, win.x1]);
+    cuts.push([W / 2 + EXT, W / 2 + EXT]);
+    let from = -W / 2 - EXT;
+    for (const [c0, c1] of cuts) { if (c0 - from > 0.05) log(c0 - from, (from + c0) / 2, yx, D / 2, true, mat); from = c1; }
+    for (const sx of [-1, 1]) log(D + EXT * 2, sx * W / 2, yz, 0, false, mat2);   // side walls
+  }
+  // log gables on the sides, shrinking toward the ridge
+  for (let y = HW + 0.1, k = 0; y < HR - 0.15; y += STEP, k++) {
+    const half = (D / 2 + 0.05) * (1 - (y - HW) / (HR - HW));
+    for (const sx of [-1, 1]) log(half * 2, sx * W / 2, y, 0, false, k % 2 ? logA : logB);
+  }
+  // plank roof with overhang, planks run down the slope in alternating tones
+  const run = D / 2 + 0.5, rise = (HR - HW) * run / (D / 2), slope = Math.atan2(rise, run), len = Math.hypot(run, rise);
+  for (const s of [-1, 1]) {
+    const n = 5;
+    for (let j = 0; j < n; j++) {
+      const d = (j + 0.5) * len / n;
+      const p = box(W + 0.9, 0.09, len / n + 0.05, 0, HR + 0.32 - Math.sin(slope) * d + j * 0.015, s * Math.cos(slope) * d, j % 2 ? roofA : roofB);
+      p.rotation.x = s * slope;
+    }
+    // bargeboards on the gable ends
+    for (const sx of [-1, 1]) { const b = box(0.06, 0.16, len, sx * (W / 2 + 0.45), HR + 0.28 - rise / 2, s * run / 2, dark); b.rotation.x = s * slope; }
+  }
+  const ridge = log(W + 1.0, 0, HR + 0.36, 0, true, dark, 0.15);
+  // stone chimney through the back slope
+  const cx = 1.0, cz = -0.55, cBase = HR - 1.0;
+  for (let k = 0; k < 7; k++) {
+    const st = box(0.52 - (k % 2) * 0.06, 0.3, 0.52 - ((k + 1) % 2) * 0.06, cx, cBase + k * 0.3, cz, k % 2 ? stone : stone2);
+    st.rotation.y = (k % 3) * 0.06;
+  }
+  box(0.62, 0.08, 0.62, cx, cBase + 6 * 0.3 + 0.19, cz, flat(0x6f675f));
+  // door: planks inside a frame
+  const dw = door.x1 - door.x0, dx = (door.x0 + door.x1) / 2;
+  for (let k = 0; k < 4; k++) box(dw / 4 - 0.015, door.top - 0.2, 0.06, door.x0 + (k + 0.5) * dw / 4, 0.18 + (door.top - 0.2) / 2, D / 2 - 0.02, k % 2 ? dark : roofM);
+  box(dw + 0.24, 0.12, 0.32, dx, door.top + 0.02, D / 2, dark);
+  for (const sx of [door.x0, door.x1]) box(0.1, door.top - 0.18, 0.32, sx, 0.18 + (door.top - 0.18) / 2, D / 2, dark);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 4), flat(0x3a3a3a)); knob.position.set(door.x1 - 0.14, 0.95, D / 2 + 0.03); g.add(knob);
+  // glowing window with a cross frame and shutters
+  const ww = win.x1 - win.x0, wh = win.y1 - win.y0, wx = (win.x0 + win.x1) / 2, wy = (win.y0 + win.y1) / 2;
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(ww, wh, 0.04), new THREE.MeshStandardMaterial({ color: 0xffd27a, emissive: 0xffb84a, emissiveIntensity: 0.9, flatShading: true }));
+  glass.position.set(wx, wy, D / 2 - 0.04); g.add(glass);
+  for (const [w, h, x, y, d] of [[ww + 0.16, 0.09, wx, win.y1, 0.32], [ww + 0.26, 0.1, wx, win.y0, 0.38], [0.08, wh, win.x0, wy, 0.32], [0.08, wh, win.x1, wy, 0.32], [0.045, wh, wx, wy, 0.1], [ww, 0.045, wx, wy, 0.1]]) box(w, h, d, x, y, D / 2, dark);
+  for (const sx of [-1, 1]) box(ww / 2, wh + 0.08, 0.05, wx + sx * (ww * 0.75 + 0.07), wy, D / 2 + 0.18, flat(0x4f7a52));
+  // porch deck and step
+  box(W + 0.2, 0.14, 0.8, 0, 0.17, D / 2 + 0.42, roofM);
+  for (let k = 0; k < 6; k++) box(0.02, 0.15, 0.8, -W / 2 - 0.1 + (k + 1) * (W + 0.2) / 7, 0.175, D / 2 + 0.42, dark);
+  box(0.9, 0.1, 0.32, dx, 0.05, D / 2 + 0.96, dark);
+  // woodpile by the left wall, end grain facing the front
+  for (let row = 0; row < 3; row++) for (let k = 0; k < 4 - row; k++) {
+    log(0.7, -W / 2 - 0.42 - (k + row * 0.5) * 0.23, 0.11 + row * 0.19, 0.35, false, k % 2 ? logA : logB, 0.11);
+  }
+  return shade(g);
+}
+function makeFence(fromA, toA, rad) {
+  const g = new THREE.Group(); const post = flat(0x8a5a30);
+  const n = Math.round((toA - fromA) * rad / 1.6);
+  for (let i = 0; i <= n; i++) {
+    const a = fromA + (toA - fromA) * i / n;
+    const p = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1, 0.22), post); p.position.set(Math.cos(a) * rad, 0.5, Math.sin(a) * rad); g.add(p);
+    if (i < n) {
+      const a2 = fromA + (toA - fromA) * (i + 1) / n, len = 2 * rad * Math.sin((a2 - a) / 2);
+      for (const y of [0.42, 0.78]) {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(len, 0.12, 0.1), post);
+        rail.position.set(Math.cos((a + a2) / 2) * rad * Math.cos((a2 - a) / 2), y, Math.sin((a + a2) / 2) * rad * Math.cos((a2 - a) / 2));
+        rail.rotation.y = -(a + a2) / 2 + Math.PI / 2; g.add(rail);
+      }
+    }
+  }
+  return shade(g);
+}
+function makeDeadTree() {
+  const g = new THREE.Group(); const bark = flat(0x6d4a2f);
+  const t = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.36, 3.2, 6), bark); t.position.y = 1.6; g.add(t);
+  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.15, 2.2, 5), bark); b.position.set(-0.75, 2.6, 0); b.rotation.z = 1.2; g.add(b);
+  const b2 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.12, 1.4, 5), bark); b2.position.set(0.4, 3.3, 0.1); b2.rotation.z = -0.6; g.add(b2);
+  return shade(g);
+}
+
+/* ---------- living details collected while building, animated every frame ---------- */
+let swayers = [];          // trees and grass tufts that move in the wind: {obj, amp, speed, phase}
+let burrows = [];          // marmot burrow entrances {x, z}
+let windowMats = [];       // cabin window materials (glow at night)
+let waterfall = null;      // {tex, splash: Vector3}
+let ripples = [];          // expanding rings on the pond
+
+function canvasTex(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; }
+const BLOB_TEX = canvasTex(64, 64, (g, w) => { const gr = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); gr.addColorStop(0, 'rgba(0,0,0,0.55)'); gr.addColorStop(0.6, 'rgba(0,0,0,0.18)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, w); });
+function makeBlob(size) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: BLOB_TEX, transparent: true, depthWrite: false, opacity: 0.8 }));
+  m.rotation.x = -Math.PI / 2; m.position.y = 0.03; m.scale.setScalar(size); m.renderOrder = 1; return m;
+}
+function sway(obj, amp, speed) { swayers.push({ obj, amp, speed, phase: Math.random() * 6.28 }); return obj; }
+
+/* value noise for ground colour patches */
+function hash2(x, y) { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); }
+function noise2(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash2(xi, yi), b = hash2(xi + 1, yi), c = hash2(xi, yi + 1), d = hash2(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+function segDist(px, pz, ax, az, bx, bz) { const abx = bx - ax, abz = bz - az; const t = Math.max(0, Math.min(1, ((px - ax) * abx + (pz - az) * abz) / (abx * abx + abz * abz))); return Math.hypot(ax + abx * t - px, az + abz * t - pz); }
+
+function makeGround(L, locId) {
+  const geo = new THREE.RingGeometry(0.01, ISLAND_R - 0.05, 64, 14);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position; const cols = [];
+  const base = new THREE.Color(L.grass), dark = new THREE.Color(L.grassDark), light = new THREE.Color(L.grassLight), dirt = new THREE.Color(L.path);
+  const path = locId === 'bor' ? [[-5.4, -3.2], [-3.6, -0.6], [-1.2, 3.8], [1.5, 6.5]] : [[-1.5, 2.8], [0.6, 3.6], [3.0, 5.6]];
+  const c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i);
+    const n = noise2(x * 0.28, z * 0.28) * 0.65 + noise2(x * 0.9, z * 0.9) * 0.35;
+    c.copy(base).lerp(n > 0.5 ? light : dark, Math.abs(n - 0.5) * 1.6);
+    let d = 9; for (let k = 0; k < path.length - 1; k++) d = Math.min(d, segDist(x, z, path[k][0], path[k][1], path[k + 1][0], path[k + 1][1]));
+    if (d < 0.9) c.lerp(dirt, (1 - d / 0.9) * 0.85);
+    const edge = Math.hypot(x, z) / ISLAND_R;
+    if (edge > 0.93) c.lerp(dark, (edge - 0.93) * 6);
+    pos.setY(i, (noise2(x * 0.5, z * 0.5) - 0.5) * 0.06);
+    cols.push(c.r, c.g, c.b);
+  }
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95 }));
+  m.receiveShadow = true; return m;
+}
+
+function makeWater(pc) {
+  const geo = new THREE.RingGeometry(0.01, pc.r, 36, 6); geo.rotateX(-Math.PI / 2);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x4f97bd, roughness: 0.15, metalness: 0.15, transparent: true, opacity: 0.9, flatShading: true, emissive: 0x0d2a3a, emissiveIntensity: 0.25 });
+  const m = new THREE.Mesh(geo, mat); m.position.set(pc.x, 0.08, pc.z); m.receiveShadow = true;
+  m.userData.base = Float32Array.from(geo.attributes.position.array);
+  return m;
+}
+function animateWater(t) {
+  if (!pond) return;
+  const p = pond.mesh.geometry.attributes.position, b = pond.mesh.userData.base;
+  for (let i = 0; i < p.count; i++) {
+    const x = b[i * 3], z = b[i * 3 + 2];
+    p.setY(i, Math.sin(x * 2.4 + t * 1.6) * 0.025 + Math.cos(z * 2.1 + t * 1.3) * 0.02);
+  }
+  p.needsUpdate = true; pond.mesh.geometry.computeVertexNormals();
+  if (pond.foam) { pond.foam.material.opacity = 0.35 + Math.sin(t * 2) * 0.12; pond.foam.scale.setScalar(1 + Math.sin(t * 1.3) * 0.015); }
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    const r = ripples[i]; r.userData.life -= 1 / 60;
+    const k = 1 - r.userData.life; r.scale.setScalar(0.2 + k * 1.4); r.material.opacity = Math.max(0, r.userData.life) * 0.7;
+    if (r.userData.life <= 0) { world.remove(r); r.material.dispose(); ripples.splice(i, 1); }
+  }
+  if (waterfall) {
+    waterfall.tex.offset.y = (t * 1.4) % 1;
+    for (const f of waterfall.foam) { const k = Math.sin(t * 5 + f.userData.ph); f.scale.set(1 + k * 0.18, 0.55 + k * 0.12, 1 + k * 0.18); f.position.y = 0.12 + k * 0.02; }
+    waterfall.pool.material.opacity = 0.38 + Math.sin(t * 7) * 0.08;
+    if (Math.random() < 0.08) addRipple(waterfall.splash.x + (Math.random() - .5) * 0.4, waterfall.splash.z + 0.2);
+  }
+}
+function addRipple(x, z) {
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.85, 1, 28), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.12, z); ring.userData.life = 1; world.add(ring); ripples.push(ring);
+}
+
+/* clouds drifting around the island (they live in the scene, not in a location) */
+const clouds = [];
+(function makeClouds() {
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, roughness: 1, transparent: true, opacity: 0.85 });
+  const r = rng(3);
+  for (let i = 0; i < 6; i++) {
+    const g = new THREE.Group();
+    const n = 3 + Math.floor(r() * 3);
+    for (let k = 0; k < n; k++) {
+      const s = new THREE.Mesh(new THREE.IcosahedronGeometry(0.9 + r() * 0.8, 0), mat);
+      s.position.set(k * 1.1 - n * 0.5, r() * 0.4, (r() - 0.5) * 0.8); s.scale.y = 0.65; s.castShadow = true; g.add(s);
+    }
+    g.scale.setScalar(0.55 + r() * 0.25);
+    g.userData = { a: i / 6 * Math.PI * 2, rad: 16 + r() * 7, y: 15 + r() * 3, sp: 0.012 + r() * 0.01 };
+    scene.add(g); clouds.push(g);
+  }
+})();
+function animateClouds(dt) { for (const c of clouds) { const u = c.userData; u.a += u.sp * dt; c.position.set(Math.cos(u.a) * u.rad, u.y, Math.sin(u.a) * u.rad); c.rotation.y = -u.a; } }
+
+/* ambient motes: pollen by day, fireflies at night */
+const MOTE_TEX = canvasTex(32, 32, (g, w) => { const gr = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.6)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, w); });
+function makeMotes(count, color, size) {
+  const geo = new THREE.BufferGeometry(); const arr = new Float32Array(count * 3); const seed = [];
+  for (let i = 0; i < count; i++) { const a = Math.random() * 6.28, d = Math.random() * 8.5; arr.set([Math.cos(a) * d, 0.4 + Math.random() * 2.6, Math.sin(a) * d], i * 3); seed.push(Math.random() * 6.28); }
+  geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  const mat = new THREE.PointsMaterial({ color, size, map: MOTE_TEX, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 });
+  const pts = new THREE.Points(geo, mat); pts.userData = { seed, base: Float32Array.from(arr) }; pts.frustumCulled = false; scene.add(pts); return pts;
+}
+const pollen = makeMotes(70, 0xfff1c2, 0.12);
+const fireflies = makeMotes(45, 0xd8ff7a, 0.24);
+function animateMotes(t, night) {
+  for (const [pts, speed, amp] of [[pollen, 0.25, 0.6], [fireflies, 0.6, 0.45]]) {
+    const p = pts.geometry.attributes.position, b = pts.userData.base, s = pts.userData.seed;
+    for (let i = 0; i < s.length; i++) {
+      p.setXYZ(i, b[i * 3] + Math.sin(t * speed + s[i]) * amp, b[i * 3 + 1] + Math.sin(t * speed * 1.3 + s[i] * 2) * amp * 0.5, b[i * 3 + 2] + Math.cos(t * speed * 0.8 + s[i]) * amp);
+    }
+    p.needsUpdate = true;
+  }
+  pollen.material.opacity += ((night ? 0 : 0.55) - pollen.material.opacity) * 0.05;
+  fireflies.material.opacity += ((night ? 0.9 + Math.sin(t * 3) * 0.1 : 0) - fireflies.material.opacity) * 0.05;
+}
+
+function buildWorld(locId) {
+  if (world) scene.remove(world);
+  world = new THREE.Group(); scene.add(world);
+  obstacles = []; pond = null; swayers = []; burrows = []; windowMats = []; waterfall = null; ripples = [];
+  const L = LOCATIONS[locId]; const r = rng(locId === 'bor' ? 7 : 19);
+
+  // island: patchy grass top, layered earth cliff, rocky underside
+  world.add(makeGround(L, locId));
+  const rim = new THREE.Mesh(new THREE.CylinderGeometry(ISLAND_R, ISLAND_R - 0.3, 0.5, 40, 1, true), flat(L.grassDark)); rim.position.y = -0.25; world.add(rim);
+  const strata = [[L.cliff, 1.0], [L.cliffDark, 0.8], [L.cliff, 0.7]]; let y = -0.5;
+  strata.forEach(([col, h], i) => {
+    const r0 = ISLAND_R - 0.3 - i * 0.9, r1 = r0 - 0.9;
+    const s = new THREE.Mesh(jitter(new THREE.CylinderGeometry(r0, r1, h, 20, 1), 0.35, r), flat(col)); s.position.y = y - h / 2; world.add(s); y -= h;
+  });
+  const bottom = new THREE.Mesh(jitter(new THREE.ConeGeometry(ISLAND_R * 0.62, 3.2, 12), 0.6, r), flat(0x5e4630));
+  bottom.position.y = y - 1.6; bottom.rotation.x = Math.PI; world.add(bottom);
+  for (let i = 0; i < 4; i++) {                          // little floating rocks under the island
+    const a = r() * 6.28; const fr = makeRock(0.35 + r() * 0.4, L.cliffDark, r); fr.position.set(Math.cos(a) * (ISLAND_R + 0.8), -1.5 - r() * 2, Math.sin(a) * (ISLAND_R + 0.8)); world.add(fr);
+  }
+
+  // pond with living water, foam ring and stones
+  const pc = locId === 'bor' ? { x: -1.6, z: 1.2, r: 2.3 } : { x: 2.4, z: 2.6, r: 1.7 };
+  const bed = new THREE.Mesh(new THREE.CylinderGeometry(pc.r + 0.45, pc.r + 0.15, 0.24, 18), flat(0x8e7b55)); bed.position.set(pc.x, -0.06, pc.z); world.add(bed);
+  const deep = new THREE.Mesh(new THREE.CircleGeometry(pc.r, 24), new THREE.MeshBasicMaterial({ color: 0x22536b })); deep.rotation.x = -Math.PI / 2; deep.position.set(pc.x, 0.02, pc.z); world.add(deep);
+  const water = makeWater(pc); world.add(water);
+  const foam = new THREE.Mesh(new THREE.RingGeometry(pc.r - 0.18, pc.r + 0.02, 40), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, depthWrite: false }));
+  foam.rotation.x = -Math.PI / 2; foam.position.set(pc.x, 0.11, pc.z); world.add(foam);
+  pond = Object.assign({ mesh: water, foam }, pc); obstacles.push({ x: pc.x, z: pc.z, r: pc.r + 0.5 });
+  for (let i = 0; i < 11; i++) {
+    const a = i / 11 * Math.PI * 2 + r() * 0.3; const s = makeRock(0.22 + r() * 0.22, 0x857d72, r);
+    s.position.x = pc.x + Math.cos(a) * (pc.r + 0.3); s.position.z = pc.z + Math.sin(a) * (pc.r + 0.3); world.add(s);
+  }
+  for (let i = 0; i < 5; i++) {                          // reeds at the water's edge
+    const a = r() * 6.28; const t = makeTuft(0x5d8a34, r); t.scale.set(0.8, 1.6, 0.8);
+    t.position.set(pc.x + Math.cos(a) * (pc.r + 0.15), 0, pc.z + Math.sin(a) * (pc.r + 0.15)); world.add(sway(t, 0.06, 1.4));
+  }
+
+  if (locId === 'bor') {
+    for (const [x, z, s] of [[-3.15, -2.0, 1.15], [-0.35, -2.45, 1.05], [-3.5, -0.85, 0.75], [-1.9, -3.75, 1.2]]) {
+      const k = makeRock(s, 0x7a7166, r); k.position.x = x; k.position.z = z; world.add(k); obstacles.push({ x, z, r: s * 0.9 });
+    }
+    const tex = canvasTex(64, 256, (g, w, h) => {
+      const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, '#7fc0dd'); gr.addColorStop(0.5, '#b9e3f3'); gr.addColorStop(1, '#7fc0dd');
+      g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 70; i++) { g.fillStyle = `rgba(255,255,255,${0.25 + Math.random() * 0.6})`; g.fillRect(Math.random() * w, Math.random() * h, 1.5 + Math.random() * 3, 18 + Math.random() * 60); }
+    });
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    // stone ledge the water spills from
+    const FX = -1.7, LIP = -1.45, TOP = 1.55;
+    const ledge = makePrism([[0, 1.25, 0x857c71], [0.7, 1.15, 0x7a7166], [1.1, 1.05, 0x8d8479], [TOP, 0.92, 0x9a9187]], 9, 0.12, r);
+    ledge.position.set(FX, 0, LIP - 0.85); world.add(ledge); obstacles.push({ x: FX, z: LIP - 0.85, r: 1.15 });
+    // stream: a ribbon that runs across the top, bends over the lip and falls in an arc into the pond
+    const path = [];
+    for (let k = 0; k <= 4; k++) path.push(new THREE.Vector3(FX, TOP + 0.04, LIP - 0.9 + k * 0.22));
+    for (let k = 1; k <= 14; k++) { const t = k / 14; path.push(new THREE.Vector3(FX, TOP + 0.04 - (TOP - 0.06) * t * t, LIP + 0.05 + 0.55 * t)); }
+    const ribbon = (wTop, wBot, lift, opacity, light) => {
+      const pos = [], uv = [], idx = [];
+      path.forEach((p, k) => {
+        const t = k / (path.length - 1), w = wTop + (wBot - wTop) * t;
+        pos.push(p.x - w / 2, p.y + lift, p.z + lift, p.x + w / 2, p.y + lift, p.z + lift);
+        uv.push(0, 1 - t * 2.5, 1, 1 - t * 2.5);
+        if (k) { const o = (k - 1) * 2; idx.push(o, o + 2, o + 1, o + 1, o + 2, o + 3); }
+      });
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      geo.setIndex(idx); geo.computeVertexNormals();
+      const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false, roughness: 0.2, emissive: light, emissiveIntensity: 0.25 }));
+      world.add(m); return m;
+    };
+    ribbon(0.62, 0.8, 0, 0.75, 0x2a5a70);
+    ribbon(0.42, 0.58, 0.03, 0.9, 0x6aa8c4);
+    // foam where the water hits the pond
+    const foamBits = [];
+    for (let k = 0; k < 7; k++) {
+      const f = new THREE.Mesh(new THREE.IcosahedronGeometry(0.12 + Math.random() * 0.08, 0), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, roughness: 0.4 }));
+      const a = k / 7 * Math.PI * 2; f.position.set(FX + Math.cos(a) * 0.32, 0.12, LIP + 0.62 + Math.sin(a) * 0.2); f.scale.y = 0.55; f.userData.ph = Math.random() * 6; world.add(f); foamBits.push(f);
+    }
+    const pool = new THREE.Mesh(new THREE.CircleGeometry(0.55, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45, depthWrite: false }));
+    pool.rotation.x = -Math.PI / 2; pool.position.set(FX, 0.115, LIP + 0.62); world.add(pool);
+    waterfall = { tex, foam: foamBits, pool, splash: new THREE.Vector3(FX, 0.2, LIP + 0.62) };
+    const cabin = makeCabin(); cabin.position.set(-6.3, 0, -4.4); cabin.rotation.y = 0.75; world.add(cabin); obstacles.push({ x: -6.3, z: -4.4, r: 2.4 });
+    cabin.traverse((o) => { if (o.isMesh && o.material.emissive && o.material.emissiveIntensity > 0.5) windowMats.push(o.material); });
+    const lamp = new THREE.PointLight(0xffb45a, 0, 7, 2); lamp.position.set(-5.4, 1.4, -3.3); world.add(lamp); windowMats.lamp = lamp;
+    for (let i = 0; i < 26; i++) {
+      const a = i / 26 * Math.PI * 2 + r() * 0.2; const d = 8.6 + r() * 1.8;
+      const x = Math.cos(a) * d, z = Math.sin(a) * d;
+      if (Math.cos(a - CAM_ANGLE) > 0.35) continue;
+      const t = makePine(r, 3 + r() * 2.2, r() > 0.5); t.position.set(x, 0, z); world.add(sway(t, 0.018, 0.7)); obstacles.push({ x, z, r: 0.9 });
+    }
+    for (const [x, z] of [[2.5, -6.2], [-4.4, -6.6], [-7.2, 0.6]]) { const t = makePine(r, 3.6, true); t.position.set(x, 0, z); world.add(sway(t, 0.018, 0.7)); obstacles.push({ x, z, r: 0.9 }); }
+    for (const [x, z, s] of [[4.6, -1.4, 1.1], [6.2, 2.2, 0.7], [-5.4, 1.8, 0.6]]) { const k = makeRock(s, 0x7f766a, r); k.position.x = x; k.position.z = z; world.add(k); obstacles.push({ x, z, r: s }); }
+    for (let i = 0; i < 30; i++) { const t = makeTuft(i % 4 ? 0x6f9a38 : 0x8bb04a, r); const a = r() * 6.28, d = 2 + r() * 7.5; t.position.set(Math.cos(a) * d, 0, Math.sin(a) * d); world.add(sway(t, 0.08, 1.6)); }
+    for (let i = 0; i < 9; i++) {                          // little flowers and mushrooms
+      const a = r() * 6.28, d = 2.5 + r() * 6.5;
+      const f = new THREE.Mesh(new THREE.IcosahedronGeometry(0.08, 0), new THREE.MeshStandardMaterial({ color: [0xffffff, 0xf5d24a, 0xd77ad0][i % 3], emissive: 0x222222 }));
+      f.position.set(Math.cos(a) * d, 0.12, Math.sin(a) * d); world.add(f);
+    }
+    world.add(makeFence(0.35, 2.75, 10.2));
+  } else {
+    const red = [0xa34f30, 0xb35d3a, 0x8f432c];
+    for (let i = 0; i < 9; i++) {
+      const a = -2.6 + i * 0.32; const d = 8 + r() * 1.2; const x = Math.cos(a) * d, z = Math.sin(a) * d;
+      const h = 1.6 + r() * 2.6;
+      const g = new THREE.Group();
+      // sandstone pillar as one closed mesh: red and sand strata, small ledges where the layers step in
+      const sand = [0xd59a68, 0xc98a5a], tiers = 3 + (r() > 0.5 ? 1 : 0);
+      let y = 0, rad = 1.35 + r() * 0.4; const prof = [[0, rad * 1.08, red[i % 3]]];
+      for (let t = 0; t < tiers; t++) {
+        const th = h / tiers, topR = rad * (0.88 + r() * 0.05), band = t % 2 ? sand[t % 2] : red[(i + t) % 3];
+        prof[prof.length - 1][2] = band;
+        prof.push([y + th, topR, 0xe2b183]);                 // ledge lip, lighter
+        y += th; rad = topR * 0.93;
+        prof.push([y + 0.05, rad, band]);
+      }
+      prof[prof.length - 1][2] = 0xdcab7e;                    // weathered top
+      g.add(makePrism(prof, 8, 0.1, r));
+      g.position.set(x, 0, z); g.rotation.y = r() * 3; world.add(shade(g)); obstacles.push({ x, z, r: 1.6 });
+    }
+    for (const [x, z, s] of [[-3.4, -1.6, 1.3], [-1.6, -3.0, 0.9], [4.6, -3.4, 0.8]]) { const k = makeRock(s, 0xb06a48, r); k.position.x = x; k.position.z = z; world.add(k); obstacles.push({ x, z, r: s }); }
+    // the falcon's lookout: a lone sandstone rock with a flat top
+    const lookout = makePrism([[0, 1.05, 0xa34f30], [0.8, 0.96, 0xd59a68], [0.85, 0.88, 0xb35d3a], [1.6, 0.8, 0xe2b183], [1.65, 0.72, 0x8f432c], [2.4, 0.66, 0xdcab7e]], 8, 0.06, r);
+    lookout.position.set(-6.0, 0, -1.0); world.add(lookout); obstacles.push({ x: -6.0, z: -1.0, r: 1.05 });
+    const tree = makeDeadTree(); tree.position.set(5.9, 0, 0.6); world.add(tree); obstacles.push({ x: 5.9, z: 0.6, r: 0.8 });
+    for (const [x, z] of [[-1.5, 2.8], [-4.2, 1.2], [1.0, -1.4]]) {
+      const mound = new THREE.Mesh(jitter(new THREE.SphereGeometry(0.75, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2), 0.12, r), flat(0xa58a5b));
+      mound.position.set(x, 0, z); mound.scale.y = 0.45; world.add(shade(mound));
+      const hole = new THREE.Mesh(new THREE.CircleGeometry(0.28, 10), new THREE.MeshBasicMaterial({ color: 0x2e2012 }));
+      hole.rotation.x = -Math.PI / 2; hole.position.set(x, 0.34, z); world.add(hole); obstacles.push({ x, z, r: 0.8 });
+      burrows.push({ x, z });
+    }
+    for (let i = 0; i < 46; i++) {                         // feather grass (ковыль) sways a lot
+      const t = makeTuft(i % 3 ? 0xd9cf9a : 0x9aa451, r); const a = r() * 6.28, d = 1.5 + r() * 8.5;
+      t.position.set(Math.cos(a) * d, 0, Math.sin(a) * d); t.scale.set(0.8 + r() * 0.5, 1 + r() * 0.8, 0.8 + r() * 0.5); world.add(sway(t, 0.12, 1.3));
+    }
+    for (let i = 0; i < 7; i++) { const a = 2.0 + i * 0.3, d = 9.6; const t = makePine(r, 2.4 + r(), true); t.position.set(Math.cos(a) * d, 0, Math.sin(a) * d); t.scale.setScalar(0.8); world.add(sway(t, 0.02, 0.7)); }
+  }
+  addHarvest(locId, r);
+}
+function animateSway(t) { for (const s of swayers) { s.obj.rotation.z = Math.sin(t * s.speed + s.phase) * s.amp; s.obj.rotation.x = Math.cos(t * s.speed * 0.8 + s.phase) * s.amp * 0.5; } }
+
+/* ---------- food sources the player gathers: berry bushes, grass clumps, worm mounds, a fishing pier ---------- */
+let harvest = [];          // [{kind, key, anchor, hit, setReady(bool), bobber?}]
+function harvestHit(w, h, d, y) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ visible: false })); m.position.y = y; return m; }
+function makeBush(r, berry, leaf) {
+  const g = new THREE.Group(), leafM = flat(leaf), berryM = flat(berry, { roughness: 0.45 });
+  const blobs = [[0, 0.42, 0, 0.5], [0.34, 0.32, 0.12, 0.36], [-0.3, 0.3, -0.1, 0.38], [0.05, 0.3, 0.32, 0.34], [-0.05, 0.62, -0.05, 0.32]];
+  for (const [x, y, z, s] of blobs) { const b = new THREE.Mesh(jitter(new THREE.IcosahedronGeometry(s, 1), s * 0.18, r), leafM); b.position.set(x, y, z); g.add(b); }
+  // three berry bunches around the bush: each one is picked by hand in the walk mode
+  const clusters = [];
+  for (let c = 0; c < 3; c++) {
+    const cl = new THREE.Group(), a = c / 3 * Math.PI * 2 + r() * 0.6, el = 0.25 + r() * 0.5, rad = 0.52;
+    cl.position.set(Math.cos(a) * Math.cos(el) * rad, 0.36 + Math.sin(el) * rad * 0.8, Math.sin(a) * Math.cos(el) * rad);
+    for (let i = 0; i < 6; i++) {
+      const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.06 + r() * 0.025, 0), berryM);
+      b.position.set((r() - .5) * 0.16, (r() - .5) * 0.14, (r() - .5) * 0.16); cl.add(b);
+    }
+    cl.add(new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 4), new THREE.MeshBasicMaterial({ visible: false })));   // easy to tap
+    cl.userData.part = 'berry'; g.add(cl); clusters.push(cl);
+  }
+  shade(g);
+  const hit = harvestHit(1.3, 1.1, 1.3, 0.5); g.add(hit);
+  return { obj: g, hit, clusters, setReady: (on) => { clusters.forEach((c) => { c.visible = on; }); } };
+}
+function makeGrassClump(r) {
+  const g = new THREE.Group(), blades = new THREE.Group();
+  for (let i = 0; i < 12; i++) {
+    const h = 0.55 + r() * 0.5, b = new THREE.Mesh(new THREE.ConeGeometry(0.05, h, 3), flat([0x7fa344, 0x96b24f, 0xb8b35e][i % 3]));
+    const a = r() * 6.28, d = r() * 0.28; b.position.set(Math.cos(a) * d, h / 2, Math.sin(a) * d); b.rotation.set((r() - .5) * 0.5, r() * 3, (r() - .5) * 0.5); blades.add(b);
+    if (i % 3 === 0) { const s = new THREE.Mesh(new THREE.IcosahedronGeometry(0.05, 0), flat(0xe8d58c)); s.position.set(b.position.x, h + 0.02, b.position.z); blades.add(s); }
+  }
+  g.add(shade(blades));
+  const hit = harvestHit(0.9, 0.9, 0.9, 0.4); g.add(hit);
+  return { obj: g, hit, blades, setReady: (on) => { blades.scale.set(1, on ? 1 : 0.3, 1); } };
+}
+function makeWormMound(r) {
+  const g = new THREE.Group();
+  const mound = new THREE.Mesh(jitter(new THREE.SphereGeometry(0.45, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), 0.05, r), flat(0x6e4b2e)); mound.scale.y = 0.42; g.add(mound);
+  for (let i = 0; i < 4; i++) { const c = new THREE.Mesh(new THREE.IcosahedronGeometry(0.06 + r() * 0.04, 0), flat(0x5a3d25)); const a = r() * 6.28; c.position.set(Math.cos(a) * 0.5, 0.03, Math.sin(a) * 0.5); g.add(c); }
+  const wm = flat(0xd98a8a, { roughness: 0.5 });
+  const makeWorm = () => {
+    const w = new THREE.Group();
+    for (let k = 0; k < 5; k++) { const s = new THREE.Mesh(new THREE.SphereGeometry(0.05 - k * 0.004, 6, 4), wm); s.position.set(0.065 * k, Math.sin(k * 1.3) * 0.04, 0); w.add(s); }
+    const tapZone = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 4), new THREE.MeshBasicMaterial({ visible: false })); tapZone.position.x = 0.13; w.add(tapZone);
+    w.userData.part = 'worm'; return w;
+  };
+  const peek = makeWorm(); peek.scale.setScalar(0.8); peek.position.set(-0.1, 0.2, 0.05); peek.rotation.z = 0.9; g.add(peek);
+  // worms that crawl out once the mound is dug up
+  const worms = [];
+  for (let k = 0; k < 2; k++) { const w = makeWorm(); w.scale.setScalar(1.7); w.position.set(k ? 0.12 : -0.2, 0.22, k ? -0.12 : 0.1); w.rotation.y = k * 2.2; w.visible = false; g.add(w); worms.push(w); }
+  shade(g);
+  const hit = harvestHit(1, 0.6, 1, 0.2); g.add(hit);
+  return { obj: g, hit, mound, worm: peek, worms, setReady: (on) => { peek.visible = on; mound.scale.y = on ? 0.42 : 0.24; worms.forEach((w) => { w.visible = false; }); } };
+}
+function makePier(len) {
+  const g = new THREE.Group(), plank = flat(0x9a6a3c), dark = flat(0x6e4728);
+  for (let k = 0; k < 6; k++) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.07, len / 6 - 0.03), k % 2 ? plank : flat(0xa87545)); p.position.set(0, 0.26, -len / 2 + (k + 0.5) * len / 6); g.add(p); }
+  for (const sx of [-0.4, 0.4]) for (const sz of [-len / 2 + 0.1, len / 2 - 0.1]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.55, 6), dark); post.position.set(sx, 0.08, sz); g.add(post); }
+  shade(g);
+  const hit = harvestHit(1.1, 0.8, len, 0.3); g.add(hit);
+  return { obj: g, hit, setReady: () => {} };
+}
+function harvestSpot(r, minR, maxR, clear, taken) {
+  for (let i = 0; i < 200; i++) {
+    const a = r() * Math.PI * 2, d = minR + r() * (maxR - minR), x = Math.cos(a) * d, z = Math.sin(a) * d;
+    if (obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + clear)) continue;
+    if (taken.some((t) => Math.hypot(t[0] - x, t[1] - z) < 1.8)) continue;
+    taken.push([x, z]); return [x, z];
+  }
+  return null;
+}
+function addHarvest(locId, r) {
+  harvest = [];
+  const taken = [], add = (kind, made, x, z, anchorY, rad) => {
+    made.obj.position.set(x, 0, z); made.obj.rotation.y = r() * 6.28; world.add(made.obj);
+    made.hit.userData.harvest = harvest.length; made.obj.userData.hIndex = harvest.length;
+    harvest.push(Object.assign(made, { kind, key: locId + ':' + harvest.length, anchor: new THREE.Vector3(x, anchorY, z) }));
+    if (rad) obstacles.push({ x, z, r: rad });
+  };
+  const plan = locId === 'bor'
+    ? [['berry', 3], ['dig', 2]]
+    : [['grass', 3], ['berry', 1], ['dig', 1]];
+  for (const [kind, n] of plan) for (let i = 0; i < n; i++) {
+    const s = harvestSpot(r, 2.6, 8.2, 0.9, taken); if (!s) continue;
+    if (kind === 'berry') add(kind, locId === 'bor' ? makeBush(r, 0x7d0c20, 0x4f8a3a) : makeBush(r, 0x8e1f2c, 0x6f9442), s[0], s[1], 1.3, 0.6);
+    else if (kind === 'grass') add(kind, makeGrassClump(r), s[0], s[1], 1.05, 0.45);
+    else add(kind, makeWormMound(r), s[0], s[1], 0.6, 0);
+  }
+  // fishing pier on the camera side of the pond, reaching toward the middle
+  if (pond) {
+    const ang = CAM_ANGLE + 0.7, dx = Math.sin(ang), dz = Math.cos(ang), len = 1.5;
+    const mid = pond.r - 0.1;
+    const pier = makePier(len);
+    add('fish', pier, pond.x + dx * mid, pond.z + dz * mid, 0.9, 0);
+    pier.obj.rotation.y = Math.atan2(dx, dz);
+    pier.bobber = new THREE.Vector3(pond.x + dx * (pond.r - 2.1), 0.13, pond.z + dz * (pond.r - 2.1));
+  }
+}
+
+
+/* ======================================================================= animals */
+const loader = new THREE.GLTFLoader();
+const GLTF = {};
+const animals = [];
+let selected = null;
+const ringMat = new THREE.MeshBasicMaterial({ color: 0xe8962e, transparent: true, opacity: 0.85 });
+const selRing = new THREE.Mesh(new THREE.TorusGeometry(1, 0.06, 6, 40), ringMat); selRing.rotation.x = -Math.PI / 2; selRing.visible = false; scene.add(selRing);
+
+function b64ToBuf(b64) { const bin = atob(b64); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; }
+function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+async function loadSpecies(id) {
+  if (GLTF[id]) return GLTF[id];
+  if (!(window.MODEL_DATA && window.MODEL_DATA[id])) await loadScript(SPECIES[id].file);
+  GLTF[id] = await new Promise((res, rej) => loader.parse(b64ToBuf(window.MODEL_DATA[id].replace(/\s+/g, '')), '', res, rej));
+  delete window.MODEL_DATA[id];                         // free the base64 copy
+  return GLTF[id];
+}
+
+function spawn(id, x, z, perch) {
+  const gltf = GLTF[id]; const sp = SPECIES[id];
+  const model = gltf.scene;
+  if (model.parent) model.parent.remove(model);          // reused after a location reload: detach from the old root so its height is not counted twice
+  model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; if (o.material) o.material.side = THREE.DoubleSide; } });
+  model.position.set(0, 0, 0); model.rotation.set(0, 0, 0); model.scale.setScalar(1); model.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(model); const size = box.getSize(new THREE.Vector3());
+  const k = sp.height / size.y; model.scale.setScalar(k); model.position.y = -box.min.y * k;
+  const root = new THREE.Group(); root.add(model);
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.9, size.x * k * 1.15), size.y * k * 1.1, Math.max(0.9, size.z * k * 1.15)), new THREE.MeshBasicMaterial({ visible: false }));
+  hit.position.y = size.y * k / 2; root.add(hit);
+  root.position.set(x, perch || 0, z); root.rotation.y = perch ? -0.5 : Math.random() * 6.28;
+  world.add(root);
+  const mixer = new THREE.AnimationMixer(model);
+  const clips = {}; gltf.animations.forEach((c) => { clips[c.name] = c; });
+  const a = { id, sp, root, model, hit, mixer, clips, state: 'idle', timer: 1.5 + Math.random() * 3, cur: null, target: null,
+    radius: Math.max(0.45, Math.max(size.x, size.z) * k * 0.45), perched: !!perch, busy: 0, onDone: null,
+    idleClip: sp.idleClip || 'Idle', home: perch ? new THREE.Vector3(x, perch, z) : null, fly: null };
+  hit.userData.animal = a;
+  a.blob = makeBlob(Math.max(1.1, a.radius * 2.8)); a.blob.visible = !perch; root.add(a.blob);
+  play(a, a.idleClip, true);
+  animals.push(a);
+  return a;
+}
+function play(a, name, loop, fade) {
+  if (name === 'Idle') name = a.idleClip;
+  const clip = a.clips[name] || a.clips[a.idleClip]; if (!clip) return 0;
+  const act = a.mixer.clipAction(clip);
+  if (a.cur === act && loop) return clip.duration;
+  act.reset(); act.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1); act.clampWhenFinished = !loop;
+  act.fadeIn(fade || 0.3).play();
+  if (a.cur && a.cur !== act) a.cur.fadeOut(fade || 0.3);
+  a.cur = act; return clip.duration;
+}
+function blocked(x, z, r, self) {
+  if (Math.hypot(x, z) > ISLAND_R - 1.6) return true;
+  if (obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + r)) return true;
+  return animals.some((b) => b !== self && !b.perched && Math.hypot(b.root.position.x - x, b.root.position.z - z) < b.radius + r + 0.3);
+}
+// hard collisions: every frame push ground animals out of rocks, trees, the cabin and each other
+function separate() {
+  const ground = animals.filter((a) => !a.perched && a.state !== 'fly');
+  for (let it = 0; it < 2; it++) {
+    for (const a of ground) {
+      const p = a.root.position;
+      for (const o of obstacles) {
+        const dx = p.x - o.x, dz = p.z - o.z, d = Math.hypot(dx, dz) || 0.001, min = o.r + a.radius * 0.7;
+        if (d < min) { p.x = o.x + dx / d * min; p.z = o.z + dz / d * min; }
+      }
+      const R = Math.hypot(p.x, p.z), maxR = ISLAND_R - 1.3;
+      if (R > maxR) { p.x *= maxR / R; p.z *= maxR / R; }
+    }
+    for (let i = 0; i < ground.length; i++) for (let j = i + 1; j < ground.length; j++) {
+      const pa = ground[i].root.position, pb = ground[j].root.position;
+      const dx = pb.x - pa.x, dz = pb.z - pa.z, d = Math.hypot(dx, dz) || 0.001, min = (ground[i].radius + ground[j].radius) * 0.85;
+      if (d < min) { const k = (min - d) / 2 / d; pa.x -= dx * k; pa.z -= dz * k; pb.x += dx * k; pb.z += dz * k; }
+    }
+  }
+}
+function freeSpot(r, self) {
+  for (let i = 0; i < 60; i++) {
+    const ang = Math.random() * Math.PI * 2, d = 1.5 + Math.random() * 6.6;
+    const x = Math.cos(ang) * d, z = Math.sin(ang) * d;
+    if (!blocked(x, z, r, self)) return new THREE.Vector3(x, 0, z);
+  }
+  return new THREE.Vector3(0, 0, 4);
+}
+function walkTo(a, target, then, caring) { a.target = target; a.state = 'walk'; a.caring = !!caring; a.onDone = then || null; a.stuck = 0; play(a, 'Walk', true, 0.25); }
+function doAction(a, clip, then, caring) { a.state = 'act'; a.caring = !!caring; const d = play(a, clip, false, 0.3) || 2; a.busy = Math.max(0.8, d); a.onDone = then || null; }
+function toIdle(a) { a.state = 'idle'; a.timer = 3 + Math.random() * 4; play(a, 'Idle', true, 0.4); const f = a.onDone; a.onDone = null; a.caring = false; if (f) f(); renderActions(); }
+// the player's action interrupts whatever the animal was doing on its own
+function readyForCare(a) {
+  if (a.state === 'sleep' || a.goingHome) { sfx('no'); toast(`Тсс! ${nameOf(a.id)} спит в норе. Байбаки — дневные животные, приходи утром`, 3800); return false; }
+  if (a.caring) { toast(`${nameOf(a.id)} ещё занят, подожди немного`); return false; }
+  if (a.state === 'fly') { toast(`${nameOf(a.id)} летит, подожди, пока сядет`); return false; }
+  a.onDone = null; a.state = 'idle'; play(a, 'Idle', true, 0.2);
+  return true;
+}
+
+/* owl flight: flap along an arc, glide in, fold the wings */
+function flyTo(a, to) {
+  const from = a.root.position.clone(); const dist = from.distanceTo(to);
+  a.fly = { from, to: to.clone(), t: 0, dur: Math.max(1.6, dist / 3.2), lift: 1.2 + dist * 0.15 };
+  a.state = 'fly'; play(a, 'Fly_Flap', true, 0.2); sfx('whoosh');
+  a.root.rotation.y = Math.atan2(to.x - from.x, to.z - from.z);
+}
+function updateFlight(a, dt) {
+  const f = a.fly; f.t = Math.min(1, f.t + dt / f.dur);
+  const u = f.t * f.t * (3 - 2 * f.t);
+  a.root.position.lerpVectors(f.from, f.to, u);
+  a.root.position.y += Math.sin(Math.PI * f.t) * f.lift;
+  a.blob.visible = true; a.blob.position.y = 0.03 - a.root.position.y;            // shadow stays on the ground under the flying owl
+  a.blob.scale.setScalar(Math.max(0.6, 1.6 - a.root.position.y * 0.25));
+  if (f.t > 0.75 && a.cur && a.cur.getClip().name === 'Fly_Flap') play(a, 'Fly_Glide', true, 0.3);
+  if (f.t >= 1) {
+    a.fly = null; a.perched = !!(a.home && a.root.position.distanceTo(a.home) < 0.1);
+    a.root.rotation.y = a.perched ? -0.5 : Math.atan2(camera.position.x - a.root.position.x, camera.position.z - a.root.position.z);
+    a.blob.visible = !a.perched; a.blob.position.y = 0.03; a.blob.scale.setScalar(Math.max(1.1, a.radius * 2.8));
+    doAction(a, 'Wings_Fold');
+  }
+}
+
+function updateAnimal(a, dt) {
+  a.mixer.update(dt);
+  if (a.state === 'fly') { updateFlight(a, dt); return; }
+  if (a.state === 'walk') {
+    const p = a.root.position; const dx = a.target.x - p.x, dz = a.target.z - p.z; const dist = Math.hypot(dx, dz);
+    if (dist < 0.2 || a.stuck > 2.5) { toIdle(a); return; }
+    let want = Math.atan2(dx, dz);
+    // steer around rocks, trees and other animals: probe ahead, turn toward the freer side
+    const ahead = 0.9 + a.radius;
+    if (blocked(p.x + Math.sin(want) * ahead, p.z + Math.cos(want) * ahead, a.radius * 0.8, a)) {
+      const l = !blocked(p.x + Math.sin(want + 0.9) * ahead, p.z + Math.cos(want + 0.9) * ahead, a.radius * 0.8, a);
+      const r = !blocked(p.x + Math.sin(want - 0.9) * ahead, p.z + Math.cos(want - 0.9) * ahead, a.radius * 0.8, a);
+      want += l ? 0.9 : r ? -0.9 : 1.6;
+      a.stuck += dt * (l || r ? 0.3 : 1);
+    }
+    let diff = want - a.root.rotation.y; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+    a.root.rotation.y += diff * Math.min(1, dt * 4);
+    const step = Math.min(dist, a.sp.speed * dt * (Math.abs(diff) > 1 ? 0.35 : 1));
+    const nx = p.x + Math.sin(a.root.rotation.y) * step, nz = p.z + Math.cos(a.root.rotation.y) * step;
+    if (!blocked(nx, nz, a.radius * 0.75, a) || (a.caring && dist < 1.2)) { p.x = nx; p.z = nz; } else a.stuck += dt;
+  } else if (a.state === 'act') {
+    a.busy -= dt;
+    if (a.busy <= 0) toIdle(a);
+  } else if (a.state === 'sleep') {
+    if (!isNight()) wake(a);
+  } else {
+    a.timer -= dt;
+    // day animals go home for the night, the owl wakes up at dusk
+    if (a.sp.active === 'day' && a.sp.speed > 0 && isNight() && !a.caring && !a.goingHome && burrows.length) { goHome(a); return; }
+    if (a.timer <= 0) {
+      if ((a.sp.active === 'night' && !isNight()) || (a.sp.active === 'day' && a.home && isNight())) {   // birds rest on their perch outside their hunting time
+        a.timer = 6 + Math.random() * 6;
+        if (!a.perched && a.home && a !== selected) flyTo(a, a.home); else doAction(a, a.sp.clips.idle[0]);
+        return;
+      }
+      if (a.sp.active === 'night' && isNight() && a.home && a !== selected && Math.random() < 0.6) { flyTo(a, a.perched ? freeSpot(0.8, a) : a.home); return; }
+      if (a.sp.active === 'dusk' && isNight() && a !== selected && Math.random() < 0.5) { doAction(a, 'Hunt'); return; }
+      if (a === selected) { a.timer = 4 + Math.random() * 4; const l = a.sp.clips.idle.filter((c) => c !== 'fly' && c !== 'Hunt'); doAction(a, l[Math.floor(Math.random() * l.length)]); }   // stays near you while selected
+      else if (!a.perched && a.sp.speed > 0 && Math.random() < 0.55) walkTo(a, freeSpot(a.radius, a));
+      else {
+        const list = a.sp.clips.idle; const pick = list[Math.floor(Math.random() * list.length)];
+        if (pick === 'fly' && a.home && a !== selected) flyTo(a, a.perched ? freeSpot(0.8, a) : a.home);
+        else doAction(a, pick === 'fly' ? list[0] : pick);
+      }
+    }
+  }
+}
+
+function nearestBurrow(p) { return burrows.reduce((b, c) => Math.hypot(c.x - p.x, c.z - p.z) < Math.hypot(b.x - p.x, b.z - p.z) ? c : b, burrows[0]); }
+function goHome(a) {
+  const b = nearestBurrow(a.root.position); a.goingHome = true;
+  walkTo(a, new THREE.Vector3(b.x + 0.75, 0, b.z + 0.4), () => {
+    a.state = 'sleep'; a.goingHome = false; a.model.visible = false; a.blob.visible = false; a.root.position.set(b.x, 0, b.z);
+    if (a === selected) renderCard();
+  });
+}
+function wake(a) {
+  a.model.visible = true; a.blob.visible = true;
+  const b = nearestBurrow(a.root.position); a.root.position.set(b.x + 0.8, 0, b.z + 0.5);
+  a.root.rotation.y = Math.atan2(camera.position.x - a.root.position.x, camera.position.z - a.root.position.z);
+  doAction(a, 'Stand');                                     // pops out and looks around
+}
+function statusOf(a) {
+  if (a.state === 'sleep') return ['i-moon', 'Спит в норе до утра. Байбаки — дневные животные: днём едят и греются, ночью спят'];
+  if (a.goingHome) return ['i-moon', 'Идёт домой в нору: наступает ночь'];
+  if (a.sp.active === 'night') return isNight() ? ['i-moon', 'Ночь — время охоты. Филин бодр и голоден'] : ['i-sun', 'Днём филин дремлет на ветке, а ночью охотится'];
+  if (a.sp.active === 'dusk' && isNight()) return ['i-moon', 'Рысь вышла на ночную охоту'];
+  if (a.sp.active === 'day' && a.home) return isNight() ? ['i-moon', 'Ночью сапсан спит на своей скале'] : ['i-sun', 'День — время охоты. Сапсан высматривает птиц с высоты'];
+  return null;
+}
+
+/* ======================================================================= needs, gifts, bubbles, card */
+const overlay = $('overlay');
+const needColor = (v) => v > 60 ? 'var(--good)' : v > 30 ? 'var(--warn)' : 'var(--bad)';
+function lowest(id) { const n = S.needs[id]; return NEED_LIST.map(([k]) => [k, n[k]]).sort((x, y) => x[1] - y[1])[0]; }
+const avgNeeds = (id) => { const n = S.needs[id]; return (n.food + n.water + n.mood + n.clean) / 4; };
+const giftReady = (id) => avgNeeds(id) >= 60 && Date.now() >= (S.nextGift[id] || 0);
+function makeBubble(a) {
+  const b = document.createElement('div'); b.className = 'bubble'; overlay.appendChild(b); a.bubble = b;
+  const t = document.createElement('div'); t.className = 'tag'; overlay.appendChild(t); a.tag = t;
+}
+const tmpV = new THREE.Vector3();
+function project(pos) { tmpV.copy(pos).project(camera); return [(tmpV.x * 0.5 + 0.5) * innerWidth, (-tmpV.y * 0.5 + 0.5) * innerHeight, tmpV.z < 1]; }
+const NEED_ICON = { food: ['i-food', '#c2703a'], water: ['i-drop', '#4d93c9'], mood: ['i-heart', '#d4553c'], clean: ['i-spark', '#e3a12f'] };
+function updateOverlays() {
+  for (const a of animals) {
+    const top = a.root.position.clone(); top.y += a.state === 'sleep' ? 0.9 : a.sp.height + 0.45;
+    const [x, y, vis] = project(top);
+    const [lk, lv] = lowest(a.id);
+    let kind = null;
+    if (a.state === 'sleep') kind = 'sleep'; else if (lv < 45) kind = lk; else if (giftReady(a.id)) kind = 'gift';
+    const show = vis && kind && (kind === 'sleep' || (a.state !== 'act' && a.state !== 'fly'));
+    a.bubble.style.opacity = show ? 1 : 0;
+    if (show) {
+      if (a.bubble.dataset.k !== kind + (lv < 25)) {
+        a.bubble.dataset.k = kind + (lv < 25);
+        a.bubble.className = 'bubble' + (kind === 'gift' ? ' gift' : kind === 'sleep' ? ' sleep' : lv < 25 ? ' urgent' : '');
+        a.bubble.innerHTML = kind === 'gift' ? svg('i-gift') : kind === 'sleep' ? 'Zzz' : svg(NEED_ICON[kind][0], NEED_ICON[kind][1]);
+      }
+      a.bubble.style.left = x + 'px'; a.bubble.style.top = y + 'px';
+    }
+    const foot = a.root.position.clone(); const [fx, fy] = project(foot);
+    a.tag.style.left = fx + 'px'; a.tag.style.top = (fy + 6) + 'px';
+    a.tag.textContent = nameOf(a.id);
+    a.tag.style.opacity = a === selected && vis ? 1 : 0;
+  }
+}
+function heartsHTML(id) {
+  const h = hearts(id); let s = '';
+  for (let i = 0; i < 4; i++) s += i < h ? svg('i-heart', 'var(--heart)') : svg('i-heart-o', 'var(--heart)');
+  return s;
+}
+let editingName = false;
+function renderCard() {
+  const c = $('card');
+  if (!selected) { c.className = 'card glass empty'; c.textContent = 'Нажми на животное, чтобы позаботиться о нём'; c.hidden = !animals.length; return; }
+  c.hidden = false;
+  if (editingName) return;
+  const a = selected, n = S.needs[a.id], sp = a.sp, f = S.friend[a.id], h = hearts(a.id);
+  const next = h < 4 ? `${Math.round(f % 25 / 25 * 100)}% до следующего ❤` : 'лучшие друзья';
+  c.className = 'card glass';
+  c.innerHTML = `<div class="avatar">${svg('i-paw', '#fff')}</div>
+    <div class="title"><b>${esc(nameOf(a.id))}</b><button class="rename" type="button" aria-label="Переименовать">${svg('i-pen')}</button><span class="latin">${sp.name === nameOf(a.id) ? sp.latin : sp.name}</span></div>
+    <div class="friend"><span class="hearts">${heartsHTML(a.id)}</span><span>Дружба: ${next}</span></div>
+    <div class="diet">Ест: ${S.knowDiet[a.id] ? `<b>${sp.dietText}</b>` : '<b>?</b> — узнай, накормив правильно'}</div>
+    ${(() => { const st = statusOf(a); return st ? `<div class="status">${svg(st[0])}${st[1]}</div>` : ''; })()}
+    <div class="needs">${NEED_LIST.map(([k, l, ic]) => `<div class="need"><div class="lbl"><span>${svg(ic)}${l}</span><i>${Math.round(n[k])}</i></div><div class="bar"><i style="width:${Math.round(n[k])}%;background:${needColor(n[k])}"></i></div></div>`).join('')}</div>`;
+  c.querySelector('.rename').addEventListener('click', startRename);
+}
+function startRename() {
+  const a = selected; if (!a) return; editingName = true;
+  const t = $('card').querySelector('.title');
+  t.innerHTML = `<input class="name-edit" id="name-edit" maxlength="20" value="${esc(nameOf(a.id))}" aria-label="Имя животного"><button class="btn" type="button" id="name-ok">${svg('i-check')}</button>`;
+  const inp = $('name-edit'); inp.focus(); inp.select();
+  const done = () => { const v = inp.value.trim(); if (v) S.names[a.id] = v; else delete S.names[a.id]; editingName = false; save(); renderCard(); };
+  $('name-ok').addEventListener('click', done);
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') done(); if (e.key === 'Escape') { editingName = false; renderCard(); } });
+}
+let focusGoal = null;
+function select(a) {
+  if (a && a !== selected) sfx('tap');
+  selected = a; selRing.visible = !!a; editingName = false; closeFoods();
+  if (a) {
+    selRing.scale.setScalar(a.radius + 0.35);
+    if (a.state === 'walk' && !a.caring) { a.onDone = null; a.state = 'idle'; a.timer = 3; play(a, 'Idle', true, 0.3); }   // stops and looks at you
+    if (giftReady(a.id) && lowest(a.id)[1] >= 45) collectGift(a);
+    if (S.tut === 0) setTut(1);
+  }
+  focusGoal = a ? 'follow' : 'home';
+  renderCard(); renderActions();
+}
+function renderActions() {
+  document.querySelectorAll('.act').forEach((b) => {
+    const busy = !selected || selected.caring || selected.state === 'fly';
+    b.disabled = !!busy;
+    b.classList.toggle('need-it', !!selected && S.needs[selected.id][ACT_NEED[b.dataset.act]] < 45);
+  });
+}
+
+/* ======================================================================= economy & progress */
+const RES_ICON = { cones: 'i-cone', leaves: 'i-leaf', gems: 'i-gem' };
+const RES_PILL = { cones: 'p-cones', leaves: 'p-leaves', gems: 'p-gems' };
+const RES_NAME = { cones: 'шишек', leaves: 'листиков', gems: 'кристаллов' };
+function renderHUD() {
+  for (const r of ['cones', 'leaves', 'gems']) $(RES_PILL[r]).querySelector('span').textContent = S[r];
+  const need = S.lvl * 100;
+  $('lvl').textContent = S.lvl; $('xp-text').textContent = `${S.xp} / ${need} опыта`;
+  $('xp-ring').style.strokeDashoffset = 138.2 * (1 - S.xp / need);
+  const ready = TASKS.filter((t) => !S.tasks.done[t.id] && (S.tasks.prog[t.id] || 0) >= t.goal).length;
+  $('task-badge').hidden = !ready; $('task-badge').textContent = ready;
+  const unseen = S.unlocked.some((id) => (S.seenFacts[id] || 1) < 1 + hearts(id));
+  $('diary-badge').hidden = !unseen;
+}
+function gain(res, n, at) {
+  S[res] += n; const p = $(RES_PILL[res]); p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump');
+  if (at) fx(at, `+${n}`, RES_ICON[res]);
+  renderHUD();
+}
+function addXP(n) {
+  S.xp += n;
+  while (S.xp >= S.lvl * 100) { S.xp -= S.lvl * 100; S.lvl++; S.gems += 1; sfx('level'); toast(`Новый уровень ${S.lvl}! Награда: 1 кристалл`); }
+  renderHUD();
+}
+function fx(pos, text, icon, dy, bad) {
+  const [x, y] = project(pos); const e = document.createElement('div'); e.className = 'fx' + (bad ? ' bad' : '');
+  e.style.left = x + 'px'; e.style.top = (y + (dy || 0)) + 'px'; e.innerHTML = `${esc(text)}${icon ? svg(icon) : ''}`;
+  overlay.appendChild(e); setTimeout(() => e.remove(), 1600);
+}
+function progress(id, by) { const t = TASKS.find((x) => x.id === id); if (!t || S.tasks.done[id]) return; S.tasks.prog[id] = Math.min(t.goal, (S.tasks.prog[id] || 0) + (by || 1)); renderHUD(); }
+function addFriend(id, n, at) {
+  const before = hearts(id);
+  S.friend[id] = Math.min(100, S.friend[id] + n);
+  if (at && n > 0) fx(at, `+${n}`, 'i-heart', 22);
+  if (hearts(id) > before) {
+    sfx('heart'); progress('friend1');
+    const h = hearts(id);
+    toast(h >= 4 ? `${nameOf(id)} теперь твой лучший друг! Новый факт в Дневнике` : `Дружба с ${nameOf(id)}: ${'❤'.repeat(h)}. Новый факт в Дневнике!`, 3400);
+    if (h >= 4) gain('gems', 2);
+  }
+  renderHUD();
+}
+function collectGift(a) {
+  const n = 6 + hearts(a.id) * 2;
+  S.nextGift[a.id] = Date.now() + GIFT_EVERY * 1000;
+  const head = a.root.position.clone(); head.y += a.sp.height;
+  gain('cones', n, head); sfx('coin'); progress('gift3'); burst(head, 0xffc94a, 10, 'spark');
+  toast(`${nameOf(a.id)} принёс подарок: ${n} шишек`);
+}
+
+/* ---------- 3D particles ---------- */
+const particles = [];
+function burst(pos, color, count, kind) {
+  const geo = kind === 'drop' ? new THREE.SphereGeometry(0.07, 6, 4) : new THREE.OctahedronGeometry(0.09, 0);
+  for (let i = 0; i < count; i++) {
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true }));
+    m.position.copy(pos).add(new THREE.Vector3((Math.random() - .5) * 0.8, Math.random() * 0.6, (Math.random() - .5) * 0.8));
+    m.userData.v = new THREE.Vector3((Math.random() - .5) * 0.8, 1 + Math.random() * 1.2, (Math.random() - .5) * 0.8); m.userData.life = 1.2;
+    scene.add(m); particles.push(m);
+  }
+}
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const m = particles[i]; m.userData.life -= dt; m.userData.v.y -= dt * 1.6;
+    m.position.addScaledVector(m.userData.v, dt); m.rotation.y += dt * 4; m.material.opacity = Math.max(0, m.userData.life / 1.2);
+    if (m.userData.life <= 0) { scene.remove(m); m.material.dispose(); particles.splice(i, 1); }
+  }
+}
+
+/* ---------- props ---------- */
+const toys = [];
+function makeProp(kind) {
+  const g = new THREE.Group(); const M = (c) => new THREE.MeshStandardMaterial({ color: c, flatShading: true, roughness: 0.7 });
+  if (kind === 'berries') { for (let i = 0; i < 6; i++) { const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.07, 0), M(0x3d5fb8)); b.position.set((i % 3 - 1) * 0.1, 0.07 + Math.floor(i / 3) * 0.09, (i % 2) * 0.06); g.add(b); } }
+  else if (kind === 'grass') { const t = makeTuft(0x7fae3e, rng(5)); t.scale.setScalar(0.7); g.add(t); }
+  else if (kind === 'fish') { const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 0), M(0x6aa8c8)); b.scale.set(1.8, 0.6, 0.7); b.position.y = 0.08; g.add(b); const tl = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.18, 4), M(0x5a90ad)); tl.rotation.z = Math.PI / 2; tl.position.set(-0.33, 0.08, 0); g.add(tl); }
+  else if (kind === 'meat') { const b = new THREE.Mesh(new THREE.DodecahedronGeometry(0.15, 0), M(0xc9563f)); b.scale.y = 0.6; b.position.y = 0.08; g.add(b); const bone = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.3, 5), M(0xf3e6cc)); bone.rotation.z = Math.PI / 2; bone.position.y = 0.1; g.add(bone); }
+  else if (kind === 'mouse') { const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.11, 0), M(0x9a8a7a)); b.scale.set(1.4, 0.8, 0.9); b.position.y = 0.08; g.add(b); }
+  else if (kind === 'treat') { const b = new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 0), new THREE.MeshStandardMaterial({ color: 0xffc94a, emissive: 0xb86a12, emissiveIntensity: 0.6 })); b.position.y = 0.2; g.add(b); }
+  else if (kind === 'cone') { const b = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.3, 7), M(0xa0612a)); b.rotation.z = Math.PI / 2.4; b.position.y = 0.1; g.add(b); }
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+function placeProp(a, kind) {
+  if (a.perched || a.state === 'sleep') return null;
+  const pr = makeProp(kind); const ang = a.root.rotation.y; const d = a.radius + 0.3;
+  pr.position.set(a.root.position.x + Math.sin(ang) * d, 0, a.root.position.z + Math.cos(ang) * d);
+  pr.scale.setScalar(0.01); world.add(pr); pr.userData.grow = 0;
+  toys.push(pr); return pr;
+}
+function removeProp(pr) { if (!pr) return; pr.userData.shrink = 1; }
+function throwToy(a) {
+  // the cone falls a couple of metres in front of the animal, the animal runs to fetch it
+  let target = null;
+  for (let i = 0; i < 12 && !target; i++) {
+    const ang = a.root.rotation.y + (Math.random() - 0.5) * 2.4; const d = 2 + Math.random() * 1.5;
+    const x = a.root.position.x + Math.sin(ang) * d, z = a.root.position.z + Math.cos(ang) * d;
+    if (!blocked(x, z, a.radius, a)) target = new THREE.Vector3(x, 0, z);
+  }
+  target = target || freeSpot(a.radius, a);
+  const toy = makeProp('cone'); toy.position.set(target.x, 4, target.z); toy.userData.fall = 0; world.add(toy); toys.push(toy);
+  return { toy, target };
+}
+function updateProps(dt) {
+  for (let i = toys.length - 1; i >= 0; i--) {
+    const t = toys[i], u = t.userData;
+    if (u.fall != null && t.position.y > 0) { u.fall += dt * 9; t.position.y = Math.max(0, t.position.y - u.fall * dt); t.rotation.x += dt * 8; if (t.position.y === 0) burst(t.position.clone(), 0xc9a26a, 6, 'spark'); }
+    if (u.grow != null && u.grow < 1) { u.grow = Math.min(1, u.grow + dt * 4); t.scale.setScalar(u.grow); }
+    if (u.shrink) { u.shrink -= dt * 2.5; t.scale.setScalar(Math.max(0.01, u.shrink)); if (u.shrink <= 0) { world.remove(t); toys.splice(i, 1); } }
+  }
+}
+
+/* ---------- care ---------- */
+const headOf = (a, f) => { const h = a.root.position.clone(); h.y += a.sp.height * (f || 1); return h; };
+const NEED_WORD = { food: ['не голоден', 'Сытость'], water: ['не хочет пить', 'Вода'], mood: ['и так весел', 'Настроение'], clean: ['и так чистый', 'Чистота'] };
+function refuseFull(a, need) {
+  sfx('no'); toast(`${nameOf(a.id)} ${NEED_WORD[need][0]}. Посмотри, чего ему не хватает`);
+  fx(headOf(a), 'Не сейчас', null, -20, true);
+}
+// helping when the animal really needs it builds friendship; topping up a full bar does not
+function applyCare(a, need, amount, extraFriend) {
+  const n = S.needs[a.id]; const before = n[need];
+  n[need] = Math.min(100, before + amount);
+  const head = headOf(a);
+  fx(head, `${NEED_WORD[need][1]} +${Math.round(n[need] - before)}`, null, -26);
+  const helpful = before < 70;
+  addFriend(a.id, Math.round((100 - before) / 100 * 12) + (extraFriend || 0) + (helpful ? 2 : 0), head);
+  if (helpful) gain('leaves', before < 40 ? 2 : 1, head);
+  addXP(helpful ? 12 : 5);
+  sfx('ok'); renderCard(); renderActions(); save();
+  if (S.tut === 1) setTut(2);
+}
+function care(kind) {
+  const a = selected; if (!a) return;
+  closeFoods();
+  if (kind === 'feed') { if (!a.caring && a.state !== 'fly') openFoods(); else readyForCare(a); return; }
+  const need = ACT_NEED[kind];
+  if (S.needs[a.id][need] >= FULL) { refuseFull(a, need); return; }
+  if (!readyForCare(a)) return;
+  if (kind === 'water' && !a.perched && a.sp.speed > 0 && pond) {
+    const p = a.root.position; const ang = Math.atan2(p.z - pond.z, p.x - pond.x);
+    const off = pond.r + 0.45 + a.radius * 0.7;
+    const edge = new THREE.Vector3(pond.x + Math.cos(ang) * off, 0, pond.z + Math.sin(ang) * off);
+    walkTo(a, edge, () => {
+      a.root.rotation.y = Math.atan2(pond.x - a.root.position.x, pond.z - a.root.position.z);
+      burst(headOf(a, 0.4), 0x7ec4e6, 10, 'drop');
+      const rx = pond.x + Math.cos(ang) * (pond.r - 0.25), rz = pond.z + Math.sin(ang) * (pond.r - 0.25);
+      [0, 450, 900, 1350].forEach((ms) => setTimeout(() => addRipple(rx, rz), ms));
+      doAction(a, a.sp.clips.eat, () => { applyCare(a, 'water', 48); progress('water3'); }, true);
+    }, true);
+    renderActions(); toast(`${nameOf(a.id)} идёт к водопою`);
+    return;
+  }
+  if (kind === 'play' && !a.perched && a.sp.speed > 0) {
+    const { toy, target } = throwToy(a); sfx('whoosh');
+    walkTo(a, target, () => {
+      a.root.rotation.y = Math.atan2(toy.position.x - a.root.position.x, toy.position.z - a.root.position.z);
+      doAction(a, a.sp.clips.play, () => { removeProp(toy); burst(toy.position.clone().setY(0.4), 0xe2574a, 12, 'spark'); applyCare(a, 'mood', 36); }, true);
+    }, true);
+    renderActions(); toast(`${nameOf(a.id)} бежит за шишкой!`);
+    return;
+  }
+  if (kind === 'clean') burst(headOf(a, 0.5), 0xbdb3a2, 10, 'drop');               // dust shaken off the fur
+  const clip = kind === 'clean' ? a.sp.clips.clean : kind === 'water' ? a.sp.clips.eat : a.sp.clips.play;
+  burst(headOf(a, 0.8), { water: 0x7ec4e6, play: 0xe2574a, clean: 0xffd76a }[kind], 14, kind === 'water' ? 'drop' : 'spark');
+  doAction(a, clip, () => { applyCare(a, need, kind === 'play' ? 34 : 42); if (kind === 'water') progress('water3'); }, true);
+  renderActions();
+}
+document.querySelectorAll('.act').forEach((b) => b.addEventListener('click', () => care(b.dataset.act)));
+
+/* ---------- food picker: every species eats its own food ---------- */
+function openFoods() {
+  const a = selected; if (!a) return;
+  const box = $('foods');
+  box.innerHTML = `<h3>Чем накормить: ${esc(nameOf(a.id))}?<small>${S.knowDiet[a.id] ? 'ест ' + a.sp.dietText : 'подумай, что он ест в природе'}</small></h3>
+    <div class="food-grid">${Object.entries(FOODS).map(([k, f]) => `<button class="food${f.gather && !(S.pantry[k] > 0) ? ' empty' : ''}" type="button" data-food="${k}" ${!f.gather && S.cones < f.cost ? 'disabled' : ''}>${svg(f.icon)}${f.name}<small>${f.gather ? (S.pantry[k] > 0 ? S.pantry[k] + ' шт' : 'добудь') : f.cost + ' ' + svg('i-cone')}</small></button>`).join('')}
+    <button class="food treat" type="button" data-food="treat" ${S.leaves < TREAT_COST ? 'disabled' : ''}>${svg('i-treat')}Лакомство<small>${TREAT_COST} ${svg('i-leaf')}</small></button></div>`;
+  box.hidden = false;
+  box.querySelectorAll('[data-food]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); feed(b.dataset.food); }));
+}
+function closeFoods() { $('foods').hidden = true; }
+function wrongReason(sp, foodId) {
+  const f = FOODS[foodId]; const w = sp.wrong;
+  return w[foodId] || (f.plant ? w.plant : w.animal) || w.fish || `${sp.name} такое не ест.`;
+}
+function feed(foodId) {
+  const a = selected; if (!a) return;
+  closeFoods();
+  if (foodId === 'treat') {
+    if (S.leaves < TREAT_COST || !readyForCare(a)) return;
+    S.leaves -= TREAT_COST; renderHUD();
+    const tprop = placeProp(a, 'treat');
+    doAction(a, a.sp.clips.eat, () => {
+      removeProp(tprop);
+      const n = S.needs[a.id]; for (const k in n) n[k] = Math.min(100, n[k] + 30);
+      const head = headOf(a);
+      burst(head, 0xffc94a, 18, 'spark'); fx(head, 'Всё +30', null, -26);
+      addFriend(a.id, 14, head); addXP(10); sfx('heart');
+      toast(`${nameOf(a.id)} в восторге от лакомства!`); renderCard(); renderActions(); save();
+    }, true);
+    renderActions(); return;
+  }
+  const f = FOODS[foodId];
+  if (!a.sp.diet.includes(foodId)) {
+    if (!readyForCare(a)) return;
+    sfx('no'); const wp = placeProp(a, foodId); doAction(a, a.sp.clips.refuse, () => removeProp(wp));
+    fx(headOf(a), 'Не ест', f.icon, -20, true);
+    toast(wrongReason(a.sp, foodId), 4200);
+    renderActions(); return;
+  }
+  if (S.needs[a.id].food >= FULL) { refuseFull(a, 'food'); return; }
+  if (f.gather) { if (!(S.pantry[foodId] > 0)) { sfx('no'); toast(`${f.name}: в корзинке пусто. ${f.where}`, 3800); return; } }
+  else if (S.cones < f.cost) { toast('Не хватает шишек. Собирай подарки или обменяй кристалл'); return; }
+  if (!readyForCare(a)) return;
+  if (f.gather) S.pantry[foodId]--; else S.cones -= f.cost; renderHUD();
+  const first = !S.knowDiet[a.id]; S.knowDiet[a.id] = true;
+  const prop = placeProp(a, foodId);
+  burst(headOf(a, 0.5), 0xd8964a, 12, 'spark');
+  doAction(a, a.sp.clips.eat, () => {
+    removeProp(prop);
+    applyCare(a, 'food', foodId === a.sp.diet[0] ? 46 : 38, foodId === a.sp.diet[0] ? 3 : 0);
+    progress('feedRight');
+    if (first) toast(`Верно! ${a.sp.name} ест ${a.sp.dietText}`, 3600);
+    if (S.tut === 2) setTut(3);
+  }, true);
+  renderActions();
+}
+document.addEventListener('pointerdown', (e) => { if (!$('foods').hidden && !e.target.closest('#foods') && !e.target.closest('[data-act="feed"]')) closeFoods(); });
+
+
+/* ---------- gathering food: berries, grass, worms, fishing ---------- */
+const GATHER = {
+  berry: { food: 'berries', n: [2, 3], cd: 90, icon: 'i-berries', label: 'Собрать ягоды', wait: 'Ягоды ещё зреют',
+    first: 'Летом на склонах Шайтан-Тау созревают земляника и степная вишня. Ягоды теперь лежат в корзинке.' },
+  grass: { food: 'grass', n: [2, 3], cd: 60, icon: 'i-grass', label: 'Нарвать травы', wait: 'Трава ещё отрастает',
+    first: 'Байбаки едят сочные степные травы и молодые побеги. Трава теперь в корзинке.' },
+  dig: { food: 'worms', n: [1, 2], cd: 70, icon: 'i-worm', label: 'Накопать червей', wait: 'Червяки спрятались глубоко',
+    first: 'Дождевые черви рыхлят почву и делают её плодородной. А ещё это наживка для рыбалки!' },
+  fish: { food: 'fish', icon: 'i-rod', label: 'Порыбачить' }
+};
+const FISH_KINDS = [
+  ['Попался карась!', 'Караси живут в тихих прудах и умеют зарываться в ил.'],
+  ['Попался окунь!', 'Окуня узнают по полосатым бокам и колючему плавнику на спине.'],
+  ['Попалась плотва!', 'Плотва держится стайками недалеко от берега.']
+];
+const BASKET_INFO = [
+  ['berries', 'Ягодные кусты на Лесной поляне и куст степной вишни на Скалистом склоне'],
+  ['grass', 'Пучки трав на Скалистом склоне'],
+  ['worms', 'Земляные кочки: нажми, чтобы накопать. Червяк — наживка для рыбалки'],
+  ['fish', 'Мостки у пруда. На крючок нужен червяк'],
+  ['meat', 'Привозит егерь, когда кормишь хищника'],
+  ['mouse', 'Привозит егерь, когда кормишь хищника']
+];
+function harvestReady(h) { return h.kind === 'fish' || Date.now() >= (S.res[h.key] || 0); }
+function makeHarvestBubbles() {
+  overlay.querySelectorAll('.bubble.res').forEach((e) => e.remove());
+  for (const h of harvest) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'bubble res'; b.setAttribute('aria-label', GATHER[h.kind].label);
+    b.innerHTML = svg(GATHER[h.kind].icon); b.style.opacity = 0;
+    b.addEventListener('click', (e) => { e.stopPropagation(); gather(h); });
+    overlay.appendChild(b); h.bubble = b; h.ready = null;
+  }
+}
+function updateHarvest() {
+  for (const h of harvest) {
+    const ready = harvestReady(h);
+    if (ready !== h.ready) { h.ready = ready; h.setReady(ready); if (ready) { h.cuts = 0; h.digs = 0; h.dug = 0; } if (fp && fp.near === h) renderFpAct(); }
+    if (!h.bubble) continue;
+    const [x, y, vis] = project(h.anchor);
+    const cd = fp ? Math.hypot(h.anchor.x - camera.position.x, h.anchor.z - camera.position.z) : 0;
+    const show = vis && ready && !fishing && (!fp || (!fp.near && !fp.atPier && cd > 3 && cd < 14));
+    h.bubble.style.opacity = show ? 1 : 0; h.bubble.style.pointerEvents = show ? 'auto' : 'none';
+    if (show) { h.bubble.style.left = x + 'px'; h.bubble.style.top = y + 'px'; }
+  }
+}
+function gather(h) {
+  if (switching) return;
+  if (!fp) { enterFP(h); return; }
+  if (fp.atPier || fp.trans) return;
+  if (fpDist(h) > (h.kind === 'fish' ? 3.2 : 2.4)) { toast('Подойди поближе', 1400); return; }
+  actOn(h, null);
+}
+function bumpBasket() { const b = document.querySelector('.dock [data-panel="basket"]'); if (!b) return; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); }
+
+let fishing = null;   // {h, bob, phase: 'wait'|'bite'|'result', t, wait, biteLen, msg}
+function startFishing(h) {
+  if (fishing) return;
+  if ((S.pantry.worms || 0) < 1) { sfx('no'); toast('Для рыбалки нужен червяк на крючок. Накопай червей в земляных кочках', 4000); return; }
+  closeFoods();
+  const bob = new THREE.Group();
+  const top = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xe0412f, roughness: 0.5 }));
+  const bot = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 }));
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.2, 5), new THREE.MeshStandardMaterial({ color: 0x333333 })); stick.position.y = 0.14;
+  bob.add(top, bot, stick); bob.position.copy(h.bobber); world.add(bob);
+  fishing = { h, bob, phase: 'wait', t: 0, wait: 2 + Math.random() * 3, msg: null };
+  addRipple(h.bobber.x, h.bobber.z); sfx('whoosh');
+  renderFishing();
+}
+function renderFishing() {
+  const el = $('fishing'); document.body.classList.toggle('fishing-on', !!fishing);
+  if (!fishing) { el.hidden = true; return; }
+  const f = fishing, worms = S.pantry.worms || 0;
+  el.hidden = false;
+  if (f.phase !== 'result') {
+    el.innerHTML = `<b class="ttl">${svg('i-rod')}Рыбалка</b><p>${f.phase === 'bite' ? 'Клюёт! Подсекай!' : esc(f.msg || 'Поплавок качается… Жди, пока он нырнёт под воду')}</p>
+      <button class="btn hook${f.phase === 'bite' ? ' hot' : ''}" type="button" id="fish-hook">Подсечь!</button>
+      <div class="row"><small>Наживка: ${worms} ${svg('i-worm')}</small><button class="btn ghost" type="button" id="fish-stop">Смотать удочку</button></div>`;
+  } else {
+    el.innerHTML = `<b class="ttl">${svg('i-rod')}Рыбалка</b><p>${esc(f.msg)}</p>
+      <div class="row"><small>Наживка: ${worms} ${svg('i-worm')}</small>${worms ? '<button class="btn" type="button" id="fish-again">Ещё заброс</button>' : ''}<button class="btn ghost" type="button" id="fish-stop">Готово</button></div>`;
+  }
+  const hk = $('fish-hook'); if (hk) hk.addEventListener('click', hookFish);
+  const ag = $('fish-again'); if (ag) ag.addEventListener('click', newCast);
+  $('fish-stop').addEventListener('click', endFishing);
+}
+function newCast() {
+  const f = fishing; if (!f) return;
+  if ((S.pantry.worms || 0) < 1) { endFishing(); toast('Червяки закончились. Накопай ещё в земляных кочках'); return; }
+  f.phase = 'wait'; f.t = 0; f.wait = 2 + Math.random() * 3; f.msg = null; f.bob.visible = true;
+  addRipple(f.h.bobber.x, f.h.bobber.z); sfx('whoosh'); renderFishing();
+}
+function hookFish() {
+  const f = fishing; if (!f) return;
+  if (f.phase === 'wait') { f.msg = 'Рано! Рыба испугалась. Подсекай, когда поплавок нырнёт'; f.t = 0; f.wait = 2 + Math.random() * 2.5; sfx('no'); renderFishing(); return; }
+  if (f.phase !== 'bite') return;
+  S.pantry.worms -= 1;
+  const n = Math.random() < 0.2 ? 2 : 1, [line, fact] = FISH_KINDS[Math.floor(Math.random() * FISH_KINDS.length)];
+  S.pantry.fish = (S.pantry.fish || 0) + n;
+  const at = f.h.bobber.clone(); at.y = 0.4;
+  if (fp) fpDebris(at, 0xd7f0fa, 10); else burst(at, 0xd7f0fa, 18, 'drop'); fx(at, `+${n}`, 'i-fish'); sfx('coin'); addXP(3); progress('gather5'); bumpBasket();
+  f.phase = 'result'; f.msg = (n > 1 ? 'Двойной улов! ' : '') + line + ' ' + fact; f.bob.visible = false;
+  save(); renderFishing();
+}
+function updateFishing(dt) {
+  const f = fishing; if (!f) return;
+  f.t += dt; const b = f.bob, base = f.h.bobber.y, tt = performance.now() / 1000;
+  if (f.phase === 'wait') {
+    b.position.y = base + Math.sin(tt * 3) * 0.015;
+    if (f.t > f.wait) { f.phase = 'bite'; f.t = 0; f.biteLen = 1.0 + Math.random() * 0.5; addRipple(f.h.bobber.x, f.h.bobber.z); sfx('tap'); renderFishing(); }
+  } else if (f.phase === 'bite') {
+    b.position.y = base - 0.1 + Math.sin(tt * 22) * 0.02;
+    if (Math.random() < dt * 5) addRipple(f.h.bobber.x, f.h.bobber.z);
+    if (f.t > f.biteLen) {
+      S.pantry.worms -= 1; f.phase = 'result'; f.bob.visible = false;
+      f.msg = 'Рыба стащила червяка и уплыла. Подсекай сразу, как только поплавок нырнёт!';
+      sfx('no'); save(); renderFishing();
+    }
+  }
+}
+function endFishing() { if (!fishing) return; if (world) world.remove(fishing.bob); fishing = null; renderFishing(); fpLeavePier(); }
+
+/* ---------- picking ---------- */
+const ray = new THREE.Raycaster(); const ptr = new THREE.Vector2(); let down = null;
+canvas.addEventListener('pointerdown', (e) => { down = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointerup', (e) => {
+  if (fp) return;
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 8) return;
+  ptr.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(ptr, camera);
+  const hits = ray.intersectObjects(animals.map((a) => a.hit).concat(harvest.map((h) => h.hit)), false);
+  if (hits.length && hits[0].object.userData.harvest != null) { gather(harvest[hits[0].object.userData.harvest]); return; }
+  const a = hits.length ? hits[0].object.userData.animal : null;
+  if (a && a === selected && giftReady(a.id)) collectGift(a);
+  select(a);
+});
+
+
+/* ---------- walk mode: first person on the island, gathering by hand ---------- */
+let fp = null;   // {pos, yaw, pitch, keys, joy, trans, back, atPier, shore, near, bob}
+const EYE = 1.5, FP_SPEED = 2.4, FP_FOV = 62;
+const fpEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+function fpQuat(yaw, pitch) { fpEuler.set(pitch, yaw, 0, 'YXZ'); return new THREE.Quaternion().setFromEuler(fpEuler); }
+function yawTo(from, to) { return Math.atan2(from.x - to.x, from.z - to.z); }
+function fpFree(x, z) {
+  if (Math.hypot(x, z) > ISLAND_R - 1.2) return false;
+  if (obstacles.some((o) => Math.hypot(o.x - x, o.z - z) < o.r + 0.45)) return false;
+  return !animals.some((a) => !a.perched && Math.hypot(a.root.position.x - x, a.root.position.z - z) < a.radius + 0.6);
+}
+function fpDist(h) { return fp ? Math.hypot(fp.pos.x - h.anchor.x, fp.pos.z - h.anchor.z) : 99; }
+function enterFP(h) {
+  if (fp || switching) return;
+  closeFoods(); closePanel(); select(null); focusGoal = null;
+  // stand a couple of steps from the chosen spot, on the side facing the old camera; or at the island edge for a free walk
+  let pos = null;
+  if (h) {
+    const base = Math.atan2(camera.position.x - h.anchor.x, camera.position.z - h.anchor.z);
+    for (let k = 0; k < 16 && !pos; k++) {
+      const a = base + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.4, d = h.kind === 'fish' ? 2.2 : 1.7;
+      const x = h.anchor.x + Math.sin(a) * d, z = h.anchor.z + Math.cos(a) * d;
+      if (fpFree(x, z)) pos = new THREE.Vector3(x, 0, z);
+    }
+  }
+  if (!pos) {
+    for (let k = 0; k < 24 && !pos; k++) { const a = CAM_ANGLE + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.25, d = 7 - (k % 3); const x = Math.sin(a) * d, z = Math.cos(a) * d; if (fpFree(x, z)) pos = new THREE.Vector3(x, 0, z); }
+  }
+  pos = pos || new THREE.Vector3(0, 0, 6);
+  const look = h ? h.anchor : new THREE.Vector3(0, 0, 0);
+  const yaw = yawTo(pos, look), pitch = h ? -0.32 : -0.08;
+  fp = { pos, yaw, pitch, keys: {}, joy: { x: 0, y: 0 }, bob: 0, near: null, atPier: false,
+    back: { pos: camera.position.clone(), quat: camera.quaternion.clone(), fov: camera.fov } };
+  fpTransition(new THREE.Vector3(pos.x, EYE, pos.z), fpQuat(yaw, pitch), FP_FOV, 1.0);
+  controls.enabled = false;
+  document.body.classList.add('fp'); $('fp-ui').hidden = false;
+  const hint = $('fp-hint'); hint.classList.remove('gone'); clearTimeout(hint._t); hint._t = setTimeout(() => hint.classList.add('gone'), 6000);
+  renderFpAct(true); sfx('whoosh');
+}
+function fpTransition(toPos, toQuat, toFov, dur, then) {
+  fp.trans = { t: 0, dur, fromPos: camera.position.clone(), fromQuat: camera.quaternion.clone(), fromFov: camera.fov, toPos, toQuat, toFov, then };
+}
+function exitFP() {
+  if (!fp || fp.leaving) return;
+  if (fishing) endFishing();
+  fp.leaving = true; $('fp-act').hidden = true;
+  fpTransition(fp.back.pos, fp.back.quat, fp.back.fov, 0.9, () => {
+    fp = null; controls.enabled = true; controls.update();
+    document.body.classList.remove('fp'); $('fp-ui').hidden = true;
+  });
+  sfx('whoosh');
+}
+function exitFPNow() {
+  if (!fp) return;
+  if (fishing) { fishing = null; renderFishing(); }
+  camera.position.copy(fp.back.pos); camera.quaternion.copy(fp.back.quat); camera.fov = fp.back.fov; camera.updateProjectionMatrix();
+  fp = null; controls.enabled = true; document.body.classList.remove('fp'); $('fp-ui').hidden = true;
+}
+function fpUpdate(dt) {
+  const f = fp;
+  if (f.trans) {
+    const T = f.trans; T.t = Math.min(1, T.t + dt / T.dur); const u = T.t * T.t * (3 - 2 * T.t);
+    camera.position.lerpVectors(T.fromPos, T.toPos, u); camera.quaternion.slerpQuaternions(T.fromQuat, T.toQuat, u);
+    camera.fov = T.fromFov + (T.toFov - T.fromFov) * u; camera.updateProjectionMatrix();
+    if (T.t >= 1) { f.trans = null; if (T.then) T.then(); }
+    return;
+  }
+  // movement: keys and joystick, relative to where you look
+  let fwd = f.joy.y * -1, side = f.joy.x;
+  if (f.keys.KeyW || f.keys.ArrowUp) fwd += 1; if (f.keys.KeyS || f.keys.ArrowDown) fwd -= 1;
+  if (f.keys.KeyD) side += 1; if (f.keys.KeyA) side -= 1;
+  if (f.keys.ArrowLeft) f.yaw += dt * 1.8; if (f.keys.ArrowRight) f.yaw -= dt * 1.8;
+  const len = Math.hypot(fwd, side);
+  if (len > 1) { fwd /= len; side /= len; }
+  if (!f.atPier && len > 0.05) {
+    const sy = Math.sin(f.yaw), cy = Math.cos(f.yaw);
+    f.pos.x += (-sy * fwd + cy * side) * FP_SPEED * dt; f.pos.z += (-cy * fwd - sy * side) * FP_SPEED * dt;
+    f.bob += dt * 9 * Math.min(1, len);
+  }
+  if (!f.atPier) {
+    for (const o of obstacles) { const dx = f.pos.x - o.x, dz = f.pos.z - o.z, d = Math.hypot(dx, dz) || 0.001, m = o.r + 0.35; if (d < m) { f.pos.x = o.x + dx / d * m; f.pos.z = o.z + dz / d * m; } }
+    for (const a of animals) {
+      if (a.perched || a.state === 'fly' || a.state === 'sleep') continue;
+      const dx = f.pos.x - a.root.position.x, dz = f.pos.z - a.root.position.z, d = Math.hypot(dx, dz) || 0.001, m = a.radius * 0.8 + 0.35;
+      if (d < m) { f.pos.x = a.root.position.x + dx / d * m; f.pos.z = a.root.position.z + dz / d * m; }
+    }
+    const R = Math.hypot(f.pos.x, f.pos.z), maxR = ISLAND_R - 1.0; if (R > maxR) { f.pos.x *= maxR / R; f.pos.z *= maxR / R; }
+  }
+  updateBits(dt);
+  const eye = f.atPier ? 1.7 : EYE + Math.sin(f.bob) * 0.035;
+  camera.position.set(f.pos.x, eye, f.pos.z);
+  camera.quaternion.copy(fpQuat(f.yaw, f.pitch));
+  updateRod();
+  // worms that crawled out wriggle
+  const tt = performance.now() / 1000;
+  for (const h of harvest) if (h.dug) h.worms.forEach((w, i) => { if (w.visible) { w.rotation.z = Math.sin(tt * 6 + i * 2) * 0.35; w.position.y = 0.22 + Math.abs(Math.sin(tt * 3 + i)) * 0.03; } });
+  // the closest source in front of you gets the action button
+  let best = null, bd = 9;
+  if (!f.atPier) for (const h of harvest) {
+    const d = fpDist(h), lim = h.kind === 'fish' ? 3.2 : 2.4; if (d > lim) continue;
+    const ang = Math.abs(Math.atan2(Math.sin(yawTo(f.pos, h.anchor) - f.yaw), Math.cos(yawTo(f.pos, h.anchor) - f.yaw)));
+    if (ang > 1.1 && d > 1.2) continue;
+    if (d < bd) { bd = d; best = h; }
+  }
+  if (best !== f.near || (best && best._lbl !== actLabel(best))) { f.near = best; renderFpAct(); }
+}
+function actLabel(h) {
+  if (h.kind === 'fish') return 'Рыбачить';
+  if (!harvestReady(h)) return `Растёт… ${Math.ceil(((S.res[h.key] || 0) - Date.now()) / 1000)} с`;
+  if (h.kind === 'berry') return 'Сорвать ягоды';
+  if (h.kind === 'grass') return 'Нарвать травы';
+  return h.dug ? 'Схватить червяка' : 'Копать';
+}
+function renderFpAct() {
+  const b = $('fp-act'); if (!fp) return;
+  const h = fp.near;
+  if (!h || fp.atPier || fp.trans) { b.hidden = true; return; }
+  h._lbl = actLabel(h);
+  b.hidden = false; b.innerHTML = `${svg(GATHER[h.kind].icon)}<span>${h._lbl}</span>`;
+  b.disabled = h.kind !== 'fish' && !harvestReady(h);
+}
+const fpBits = [];
+function fpDebris(at, color, n) {
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.8, flatShading: true });
+  for (let i = 0; i < (n || 8); i++) {
+    const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.025 + Math.random() * 0.025, 0), mat);
+    m.position.copy(at); m.userData.v = new THREE.Vector3((Math.random() - .5) * 1.6, 1 + Math.random() * 1.4, (Math.random() - .5) * 1.6); m.userData.life = 0.9;
+    world.add(m); fpBits.push(m);
+  }
+}
+function updateBits(dt) {
+  for (let i = fpBits.length - 1; i >= 0; i--) {
+    const m = fpBits[i], v = m.userData.v; v.y -= 5 * dt; m.position.addScaledVector(v, dt); m.rotation.x += dt * 6;
+    if (m.position.y < 0.02) { m.position.y = 0.02; v.set(v.x * 0.4, 0, v.z * 0.4); }
+    m.userData.life -= dt; if (m.userData.life <= 0) { if (m.parent) m.parent.remove(m); fpBits.splice(i, 1); }
+  }
+}
+// rod and line in your hands while fishing from the pier
+function updateRod() {
+  const want = fp && fp.atPier && fishing && !fp.trans;
+  if (!want) { if (fp && fp.rod) { world.remove(fp.rod.group); fp.rod = null; } return; }
+  if (!fp.rod) {
+    const group = new THREE.Group();
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.022, 1, 6), new THREE.MeshStandardMaterial({ color: 0x7a4f2c, roughness: 0.7 }));
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0xf4f4f4 }));
+    group.add(stick, line); world.add(group); fp.rod = { group, stick, line };
+  }
+  const handle = new THREE.Vector3(0.28, -0.42, -0.45).applyQuaternion(camera.quaternion).add(camera.position);
+  const tip = new THREE.Vector3(0.5, 0.05, -1.35).applyQuaternion(camera.quaternion).add(camera.position);
+  const mid = handle.clone().add(tip).multiplyScalar(0.5), dir = tip.clone().sub(handle);
+  fp.rod.stick.position.copy(mid); fp.rod.stick.scale.set(1, dir.length(), 1);
+  fp.rod.stick.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  const bob = fishing.bob.position.clone(); bob.y += 0.12;
+  fp.rod.line.geometry.setFromPoints([tip, fishing.bob.visible ? bob : tip.clone().add(new THREE.Vector3(0, -0.6, 0))]);
+}
+function gainFood(food, at, n) {
+  S.pantry[food] = (S.pantry[food] || 0) + (n || 1);
+  fx(at, `+${n || 1}`, FOODS[food].icon); sfx('coin'); bumpBasket();
+}
+function completeSource(h) {
+  S.res[h.key] = Date.now() + GATHER[h.kind].cd * 1000;
+  addXP(2); progress('gather5');
+  if (!S.seenGather[h.kind]) { S.seenGather[h.kind] = 1; toast(GATHER[h.kind].first, 4400); }
+  save(); renderFpAct();
+}
+// one hand action on a source; part = the berry bunch or worm that was tapped, if any
+function actOn(h, part) {
+  if (h.kind === 'fish') { fpFish(h); return; }
+  if (!harvestReady(h)) { sfx('no'); toast(`${GATHER[h.kind].wait}. Загляни через ${Math.ceil(((S.res[h.key] || 0) - Date.now()) / 1000)} с`); return; }
+  const wpos = (o) => o.getWorldPosition(new THREE.Vector3());
+  if (h.kind === 'berry') {
+    const cl = part && part.visible ? part : h.clusters.find((c) => c.visible); if (!cl) return;
+    cl.visible = false; const at = wpos(cl);
+    fpDebris(at, 0xa8142e, 6); gainFood('berries', at);
+    if (!h.clusters.some((c) => c.visible)) completeSource(h);
+  } else if (h.kind === 'grass') {
+    h.cuts = (h.cuts || 0) + 1; h.blades.scale.y = Math.max(0.3, 1 - h.cuts * 0.25);
+    const at = h.anchor.clone(); at.y = 0.6; fpDebris(at, 0x9ab24f, 8); gainFood('grass', at);
+    if (h.cuts >= 3) completeSource(h);
+  } else if (h.kind === 'dig') {
+    if (!h.dug) {
+      h.digs = (h.digs || 0) + 1; h.mound.scale.y = Math.max(0.2, 0.42 - h.digs * 0.07);
+      const at = h.anchor.clone(); at.y = 0.25; fpDebris(at, 0x6e4b2e, 12); sfx('tap');
+      if (h.digs >= 3) {
+        h.dug = 1 + (Math.random() < 0.5 ? 1 : 0); h.worm.visible = false;
+        h.worms.forEach((w, i) => { w.visible = i < h.dug; });
+        toast(h.dug > 1 ? 'Два червяка! Хватай их' : 'Червяк! Хватай его');
+      } else toast(`Копаем… ещё ${3 - h.digs}`, 900);
+    } else {
+      const w = part && part.visible ? part : h.worms.find((x) => x.visible); if (!w) return;
+      w.visible = false; gainFood('worms', wpos(w));
+      if (!h.worms.some((x) => x.visible)) { h.dug = 0; h.digs = 0; completeSource(h); }
+    }
+  }
+  save(); renderFpAct();
+}
+// fishing from the pier: walk onto the planks, look at the float
+function fpFish(h) {
+  if (fishing) return;
+  if ((S.pantry.worms || 0) < 1) { sfx('no'); toast('Для рыбалки нужен червяк на крючок. Накопай червей в земляных кочках', 4000); return; }
+  fp.shore = fp.pos.clone(); fp.atPier = true; renderFpAct();
+  const stand = new THREE.Vector3(h.anchor.x, 0, h.anchor.z);
+  fp.pos.copy(stand); fp.yaw = yawTo(stand, h.bobber); fp.pitch = -Math.atan2(1.7 - h.bobber.y, Math.hypot(stand.x - h.bobber.x, stand.z - h.bobber.z)) + 0.12;
+  fpTransition(new THREE.Vector3(stand.x, 1.7, stand.z), fpQuat(fp.yaw, fp.pitch), FP_FOV, 0.8, () => startFishing(h));
+}
+function fpLeavePier() {
+  if (!fp || !fp.atPier) return;
+  if (fp.rod) { world.remove(fp.rod.group); fp.rod = null; }
+  fp.atPier = false; if (fp.shore) fp.pos.copy(fp.shore);
+  if (!fp.leaving) fpTransition(new THREE.Vector3(fp.pos.x, EYE, fp.pos.z), fpQuat(fp.yaw, -0.1), FP_FOV, 0.7);
+  fp.pitch = -0.1; renderFpAct();
+}
+function fpTap(cx, cy) {
+  ptr.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1);
+  ray.setFromCamera(ptr, camera);
+  const near = harvest.filter((h) => fpDist(h) < (h.kind === 'fish' ? 3.4 : 2.8));
+  const parts = [];
+  for (const h of near) {
+    if (h.kind === 'berry') parts.push(...h.clusters.filter((c) => c.visible));
+    if (h.kind === 'dig' && h.dug) parts.push(...h.worms.filter((w) => w.visible));
+  }
+  const ph = ray.intersectObjects(parts, true);
+  if (ph.length) {
+    let o = ph[0].object; while (o && !o.userData.part) o = o.parent;
+    let g = o; while (g && g.userData.hIndex === undefined) g = g.parent;
+    if (o && g) { actOn(harvest[g.userData.hIndex], o); return; }
+  }
+  const hh = ray.intersectObjects(near.map((h) => h.hit), false);
+  if (hh.length) { actOn(harvest[hh[0].object.userData.harvest], null); return; }
+  const far = ray.intersectObjects(harvest.map((h) => h.hit), false);
+  if (far.length) toast('Подойди поближе', 1400);
+}
+// input: drag to look, joystick or WASD to walk, tap to pick
+(function fpInput() {
+  let drag = null;
+  canvas.addEventListener('pointerdown', (e) => { if (!fp) return; drag = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY }; });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!fp || !drag || drag.id !== e.pointerId || fp.trans) return;
+    fp.yaw -= (e.clientX - drag.x) * 0.0055; fp.pitch = Math.max(-1.15, Math.min(0.85, fp.pitch - (e.clientY - drag.y) * 0.0045));
+    drag.x = e.clientX; drag.y = e.clientY;
+  });
+  const up = (e) => {
+    if (!fp || !drag || drag.id !== e.pointerId) return;
+    const moved = Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy); drag = null;
+    if (moved < 8 && !fp.trans) fpTap(e.clientX, e.clientY);
+  };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', () => { drag = null; });
+  const joy = $('fp-joy'), knob = $('fp-knob'); let jid = null;
+  const setJoy = (e) => {
+    const r = joy.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    let dx = e.clientX - cx, dy = e.clientY - cy; const m = r.width / 2 - 20, d = Math.hypot(dx, dy);
+    if (d > m) { dx *= m / d; dy *= m / d; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`; if (fp) { fp.joy.x = dx / m; fp.joy.y = dy / m; }
+  };
+  joy.addEventListener('pointerdown', (e) => { jid = e.pointerId; joy.setPointerCapture(jid); setJoy(e); e.preventDefault(); });
+  joy.addEventListener('pointermove', (e) => { if (e.pointerId === jid) setJoy(e); });
+  const jend = (e) => { if (e.pointerId !== jid) return; jid = null; knob.style.transform = ''; if (fp) { fp.joy.x = 0; fp.joy.y = 0; } };
+  joy.addEventListener('pointerup', jend); joy.addEventListener('pointercancel', jend);
+  addEventListener('keydown', (e) => { if (!fp) return; fp.keys[e.code] = true; if (e.code === 'KeyE' || e.code === 'Space') { if (fp.near) actOn(fp.near, null); e.preventDefault(); } if (e.code === 'Escape') exitFP(); });
+  addEventListener('keyup', (e) => { if (fp) fp.keys[e.code] = false; });
+  $('fp-act').addEventListener('click', () => { if (fp && fp.near) actOn(fp.near, null); });
+  $('fp-exit').addEventListener('click', exitFP);
+})();
+
+/* ======================================================================= tutorial */
+const TUT = [
+  'Привет! Это твой заповедник. Нажми на животное, чтобы познакомиться.',
+  'Шкалы показывают, чего ему не хватает. Красная точка подсказывает нужное действие.',
+  'Каждое животное ест своё. Нажми «Накормить» и подумай, что оно ест в природе.',
+  'Отлично! Чем лучше заботишься, тем крепче дружба. За сердечки открываются факты в Дневнике. Новых жителей открывай кодами из книжки.'
+];
+function setTut(n) { S.tut = n; save(); renderCoach(); }
+function renderCoach() {
+  const c = $('coach');
+  if (S.tut >= TUT.length) { c.hidden = true; return; }
+  c.hidden = false;
+  const last = S.tut === TUT.length - 1;
+  c.innerHTML = `<div class="face">${svg('i-paw', '#fff')}</div><p>${TUT[S.tut]}</p><div class="row">${last ? '' : '<button type="button" id="tut-skip">Пропустить</button>'}${last ? '<button type="button" class="go" id="tut-next">Понятно</button>' : ''}</div>`;
+  const sk = $('tut-skip'); if (sk) sk.addEventListener('click', () => setTut(TUT.length));
+  const nx = $('tut-next'); if (nx) nx.addEventListener('click', () => setTut(TUT.length));
+}
+
+/* ======================================================================= panels */
+const panelBg = $('panel-bg'), panel = $('panel');
+const normCode = (s) => s.toUpperCase().replace(/Ё/g, 'Е').replace(/[^А-ЯA-Z]/g, '');
+function unlock(id) {
+  if (isUnlocked(id)) return false;
+  S.unlocked.push(id); S.nextGift[id] = Date.now() + 30000; save(); sfx('level');
+  return true;
+}
+function openPanel(kind) {
+  closeFoods();
+  document.querySelectorAll('.dock button').forEach((b) => b.classList.toggle('on', b.dataset.panel === kind));
+  let html = `<button class="close" type="button" aria-label="Закрыть">×</button>`;
+  if (kind === 'diary') {
+    const list = Object.keys(SPECIES).filter(isUnlocked);
+    html += `<h2>Дневник натуралиста</h2><p class="lead">Факты открываются, когда дружба с животным крепнет. Каждое сердечко — новый факт.</p>` +
+      list.map((id) => {
+        const sp = SPECIES[id], open = 1 + hearts(id);
+        S.seenFacts[id] = open;
+        return `<div class="diary"><header><b>${esc(nameOf(id))}</b><span class="hearts">${heartsHTML(id)}</span></header>
+          <small style="color:var(--ink-soft);font-weight:700">${sp.name} · ${sp.latin} · ест ${S.knowDiet[id] ? sp.dietText : '?'}</small>
+          <ul>${sp.facts.map((t, i) => i < open ? `<li>${svg('i-check', 'var(--good)')}<span>${t}</span></li>` : `<li class="locked">${svg('i-lock')}<span>Откроется при ${'❤'.repeat(i)}</span></li>`).join('')}</ul></div>`;
+      }).join('') + (Object.keys(SPECIES).some((id) => !isUnlocked(id)) ? `<p class="lead">Других жителей ещё нужно найти: открой их кодами в Коллекции.</p>` : '');
+    save(); renderHUD();
+  } else if (kind === 'basket') {
+    html += `<h2>Корзинка</h2><p class="lead">Ягоды, травы, червей и рыбу добываешь сам: нажимай на кусты, кочки и мостки у пруда. Мясо и мышей хищникам привозит егерь за шишки.</p>` +
+      BASKET_INFO.map(([k, info]) => { const f = FOODS[k]; return `<div class="b-row">${svg(f.icon)}<div><b>${f.name}</b><small>${info}</small></div><span class="cnt">${f.gather ? (S.pantry[k] || 0) : f.cost + ' ' + svg('i-cone')}</span></div>`; }).join('');
+  } else if (kind === 'collection') {
+    const total = Object.keys(SPECIES).length + SOON.length;
+    html += `<h2>Коллекция</h2><p class="lead">Найдено ${S.unlocked.length} из ${total}. Код жителя — это ответ на кроссворд в книжке. Найденные по QR-карточкам животные появляются здесь сами.</p>
+      <div class="code-row"><input id="code-in" maxlength="20" placeholder="Введи код из кроссворда" autocomplete="off" aria-label="Код из кроссворда"><button class="btn" type="button" id="code-go">${svg('i-key')}Открыть</button></div>
+      <h3>Жители</h3><div class="grid2">` +
+      Object.entries(SPECIES).map(([id, s]) => {
+        const where = LOCATIONS[s.home].name;
+        return isUnlocked(id)
+          ? `<div class="tile"><div class="pic">${svg('i-paw')}</div><b>${esc(nameOf(id))}</b><small>${s.name} · ${where}</small><small><span class="hearts">${heartsHTML(id)}</span></small></div>`
+          : `<div class="tile locked"><div class="pic">${svg('i-lock')}</div><b>???</b><small>Живёт: ${where}. Нужен код из книжки</small></div>`;
+      }).join('') +
+      SOON.map((l) => `<div class="tile locked"><div class="pic">${svg('i-lock')}</div><b>???</b><small>${l.name} · ${l.where}. Скоро в заповеднике</small></div>`).join('') + `</div>
+      <div class="note">Тестовая версия. Коды для проверки: ${Object.values(SPECIES).map((s) => s.code).join(', ')}.</div>`;
+  } else if (kind === 'tasks') {
+    html += `<h2>Задания на сегодня</h2><p class="lead">Выполняй и забирай награды. Новые задания появятся завтра.</p>` +
+      TASKS.map((t) => {
+        const p = S.tasks.prog[t.id] || 0, done = S.tasks.done[t.id], ready = !done && p >= t.goal;
+        return `<div class="task"><b>${t.text}</b><button class="btn" type="button" data-claim="${t.id}" ${ready ? '' : 'disabled'}>${done ? 'Получено' : `${t.reward[1]} ${svg(RES_ICON[t.reward[0]])}`}</button><div class="bar"><i style="width:${p / t.goal * 100}%;background:var(--amber)"></i></div></div>`;
+      }).join('');
+  } else if (kind === 'map') {
+    html += `<h2>Карта Шайтан-Тау</h2><p class="lead">В заповеднике несколько участков, у каждого животного свой дом. Выбери, куда отправиться.</p><div class="grid2">` +
+      Object.entries(LOCATIONS).map(([id, l]) => {
+        const got = l.animals.filter(isUnlocked).length;
+        return `<button type="button" class="tile map-card" data-loc="${id}" style="cursor:pointer;${S.loc === id ? 'outline:3px solid var(--amber)' : ''}"><div class="pic" style="background:${l.thumb};color:#fff">${svg(l.icon)}</div><b>${l.name}</b><small>${l.desc}</small><small>Жители: ${got} из ${l.animals.length}</small></button>`;
+      }).join('') + `</div>`;
+  } else if (kind === 'shop') {
+    html += `<h2>Обмен</h2><p class="lead">Шишки нужны для корма, листики — для лакомств. Их приносят довольные животные, а кристаллы даются за новые уровни.</p>` +
+      EXCHANGE.map((x) => `<div class="task"><b>${x.text}: ${x.get[1]} ${RES_NAME[x.get[0]]}</b><button class="btn" type="button" data-ex="${x.id}" ${S[x.give[0]] < x.give[1] ? 'disabled' : ''}>${x.give[1]} ${svg(RES_ICON[x.give[0]])}</button><small style="color:var(--ink-soft);font-weight:700">за ${x.give[1]} кристалл</small></div>`).join('');
+  } else if (kind === 'daily') {
+    const d = window.__daily || { n: S.streak.n, reward: 0 };
+    html += `<h2>День заботы №${d.n}</h2><p class="lead">Заходи каждый день: чем длиннее серия, тем больше подарок. На 7-й день — кристалл.</p>
+      <div class="days">${[1, 2, 3, 4, 5, 6, 7].map((k) => { const cur = Math.min(d.n, 7); return `<div class="day ${k < cur ? 'got' : k === cur ? 'now' : ''}">${k === 7 ? svg('i-gem') : svg('i-cone')}День ${k}<small>${k === 7 ? '+1' : '+' + (10 + k * 5)}</small></div>`; }).join('')}</div>
+      <button class="btn" type="button" id="daily-ok">${svg('i-cone')}Забрать ${d.reward} шишек${d.gem ? ' и кристалл' : ''}</button>`;
+  } else if (kind === 'settings') {
+    html += `<h2>Настройки</h2>
+      <div class="setting"><span>Звуки</span><button class="btn ${S.sound ? '' : 'ghost'}" type="button" id="set-sound">${S.sound ? 'Включены' : 'Выключены'}</button></div>
+      <div class="setting"><span>Смена дня и ночи</span><button class="btn ${S.cycle ? '' : 'ghost'}" type="button" id="set-cycle">${S.cycle ? 'Включена' : 'Всегда день'}</button></div>
+      <div class="setting"><span>Показать обучение заново</span><button class="btn ghost" type="button" id="set-tut">Показать</button></div>
+      <div class="setting"><span>Тест: открыть всех жителей</span><button class="btn ghost" type="button" id="set-all">Открыть</button></div>
+      <div class="setting"><span>Игрок: ${PLAYER ? esc(PLAYER.avatar + ' ' + PLAYER.name) : '—'}</span><button class="btn ghost" type="button" id="set-player">Сменить</button></div>
+      <div class="setting"><span>Начать заново</span><button class="btn danger" type="button" id="set-reset">Сбросить</button></div>`;
+  }
+  panel.innerHTML = html; panelBg.hidden = false;
+  panel.querySelector('.close').addEventListener('click', closePanel);
+  panel.querySelectorAll('[data-claim]').forEach((b) => b.addEventListener('click', () => {
+    const t = TASKS.find((x) => x.id === b.dataset.claim); S.tasks.done[t.id] = true;
+    gain(t.reward[0], t.reward[1]); addXP(25); sfx('coin'); toast('Награда получена'); save(); openPanel('tasks');
+  }));
+  panel.querySelectorAll('[data-loc]').forEach((b) => b.addEventListener('click', () => { closePanel(); goTo(b.dataset.loc); }));
+  panel.querySelectorAll('[data-ex]').forEach((b) => b.addEventListener('click', () => {
+    const x = EXCHANGE.find((e) => e.id === b.dataset.ex); if (S[x.give[0]] < x.give[1]) return;
+    S[x.give[0]] -= x.give[1]; gain(x.get[0], x.get[1]); sfx('coin'); save(); openPanel('shop');
+  }));
+  const go = $('code-go');
+  if (go) {
+    const tryCode = () => {
+      const v = normCode($('code-in').value);
+      const id = Object.keys(SPECIES).find((k) => normCode(SPECIES[k].code) === v);
+      if (v === normCode('РАЗРАБ')) { Object.keys(SPECIES).forEach(unlock); closePanel(); goTo(S.loc); toast('Режим разработчика: все жители открыты'); return; }
+      if (!id) { sfx('no'); toast('Такого кода нет. Проверь ответ кроссворда'); return; }
+      if (!unlock(id)) { toast(`${SPECIES[id].name} уже живёт в заповеднике`); return; }
+      const home = SPECIES[id].home;
+      toast(`Новый житель: ${SPECIES[id].name}! Дом: ${LOCATIONS[home].name}`, 3600);
+      closePanel(); goTo(home);
+    };
+    go.addEventListener('click', tryCode);
+    $('code-in').addEventListener('keydown', (e) => { if (e.key === 'Enter') tryCode(); });
+  }
+  const sc = $('set-cycle'); if (sc) sc.addEventListener('click', () => { S.cycle = !S.cycle; save(); openPanel('settings'); sfx('tap'); renderClock(); });
+  const dk = $('daily-ok'); if (dk) dk.addEventListener('click', () => { closePanel(); sfx('coin'); renderHUD(); const p = $('p-cones'); p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump'); });
+  const ss = $('set-sound'); if (ss) ss.addEventListener('click', () => { S.sound = !S.sound; save(); openPanel('settings'); sfx('tap'); });
+  const st = $('set-tut'); if (st) st.addEventListener('click', () => { closePanel(); setTut(0); });
+  const sa = $('set-all'); if (sa) sa.addEventListener('click', () => { Object.keys(SPECIES).forEach(unlock); closePanel(); goTo(S.loc); toast('Все жители открыты'); });
+  const sp = $('set-player'); if (sp) sp.addEventListener('click', () => { if (window.Profile) { Profile.signOut(); location.reload(); } });
+  const sr = $('set-reset');
+  if (sr) sr.addEventListener('click', () => {
+    if (sr.dataset.armed) { S = fresh(); save(); closePanel(); renderHUD(); renderCoach(); goTo(S.loc); toast('Заповедник начат заново'); }
+    else { sr.dataset.armed = '1'; sr.textContent = 'Точно сбросить?'; }
+  });
+}
+function closePanel() { panelBg.hidden = true; document.querySelectorAll('.dock button').forEach((b) => b.classList.remove('on')); }
+panelBg.addEventListener('click', (e) => { if (e.target === panelBg) closePanel(); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePanel(); closeFoods(); } });
+document.querySelectorAll('.dock button').forEach((b) => b.addEventListener('click', () => { sfx('tap'); if (b.dataset.panel === 'walk') enterFP(null); else openPanel(b.dataset.panel); }));
+['p-cones', 'p-leaves', 'p-gems'].forEach((id) => $(id).addEventListener('click', () => { sfx('tap'); openPanel('shop'); }));
+$('settings-btn').addEventListener('click', () => { sfx('tap'); openPanel('settings'); });
+$('loc-btn').addEventListener('click', () => { sfx('tap'); goTo(S.loc === 'bor' ? 'shaitan' : 'bor'); });
+$('photo-btn').addEventListener('click', () => {
+  select(null); document.body.classList.add('photo');
+  setTimeout(() => { const f = document.createElement('div'); f.className = 'flash'; document.body.appendChild(f); setTimeout(() => f.remove(), 600);
+    sfx('ok'); progress('photo1'); toast('Красивый кадр! Фото сохранено в альбом заповедника'); }, 700);
+  setTimeout(() => document.body.classList.remove('photo'), 2600);
+});
+
+/* ======================================================================= location switching */
+const SPOTS = { bor: { medved: [2.2, 2.6], rys: [4.0, -2.8] }, shaitan: { baibak: [-0.6, 3.6], filin: [5.2, 0.6, 2.68], sapsan: [-6.0, -1.0, 2.44] } };
+let switching = false;
+// location changes run one after another: a quick second tap waits for the first switch instead of being lost
+let goChain = Promise.resolve();
+function goTo(locId) { goChain = goChain.then(() => goToNow(locId)).catch((e) => { console.error(e); switching = false; }); return goChain; }
+async function goToNow(locId) {
+  exitFPNow(); switching = true;
+  S.loc = locId; save(); select(null);
+  animals.forEach((a) => { a.bubble.remove(); a.tag.remove(); }); animals.length = 0;
+  endFishing();
+  buildWorld(locId); makeHarvestBubbles();
+  const L = LOCATIONS[locId];
+  $('loc-name').textContent = L.name; $('loc-thumb').style.background = L.thumb; $('loc-thumb').innerHTML = svg(L.icon, '#fff');
+  for (const id of L.animals.filter(isUnlocked)) {
+    await loadSpecies(id);
+    let [x, z, perch] = SPOTS[locId][id];
+    if (!perch && blocked(x, z, 0.9, null)) { const f = freeSpot(0.9, null); x = f.x; z = f.z; }
+    makeBubble(spawn(id, x, z, perch));
+  }
+  const empty = $('empty-loc');
+  if (!animals.length) {
+    empty.hidden = false;
+    empty.innerHTML = `${svg('i-lock', 'var(--amber-deep)')}<b>Здесь пока никто не живёт</b><p>Жители ${L.nameGen}: ${L.animals.map((id) => SPECIES[id].name.toLowerCase()).join(' и ')}. Открой их кодами из книжки.</p><button class="btn" type="button" id="empty-go">${svg('i-key')}Ввести код</button>`;
+    $('empty-go').addEventListener('click', () => openPanel('collection'));
+  } else empty.hidden = true;
+  renderCard();
+  switching = false;
+}
+
+/* ======================================================================= loop */
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+const HOME_TARGET = new THREE.Vector3(0, 0.6, 0);
+const clock = new THREE.Clock(); let needTick = 0; let frameCount = 0;
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.12); frameCount++;
+  // camera eases toward the selected animal and back to the island centre
+  const goal = focusGoal === 'follow' && selected ? new THREE.Vector3(selected.root.position.x * 0.7, 0.6, selected.root.position.z * 0.7) : focusGoal === 'home' ? HOME_TARGET : null;
+  if (goal && !fp) {
+    const d = goal.clone().sub(controls.target).multiplyScalar(Math.min(1, dt * 2.5));
+    controls.target.add(d); camera.position.add(d);
+    if (focusGoal === 'home' && controls.target.distanceTo(HOME_TARGET) < 0.02) focusGoal = null;
+  }
+  if (fp) fpUpdate(dt); else controls.update();
+  for (const a of animals) updateAnimal(a, dt);
+  separate();
+  if (selected) { selRing.position.set(selected.root.position.x, selected.root.position.y + 0.04, selected.root.position.z); ringMat.opacity = 0.6 + Math.sin(performance.now() / 250) * 0.25; }
+  updateParticles(dt); updateProps(dt); updateHarvest(); updateFishing(dt);
+  const tt = performance.now() / 1000;
+  const night = updateDay(); animateWater(tt); animateSway(tt); animateClouds(dt); animateMotes(tt, night);
+  if (waterfall && Math.random() < dt * 6) burst(waterfall.splash, 0xd7f0fa, 1, 'drop');
+  needTick += dt;
+  if (needTick > 1) {
+    for (const k of S.unlocked) {
+      const n = S.needs[k];
+      for (const m in DECAY) {
+        let d = DECAY[m];
+        if (m === 'mood' && (n.food < 30 || n.water < 30)) d *= 2;       // hungry or thirsty animals get sad faster
+        const sleeping = animals.some((x) => x.id === k && x.state === 'sleep');
+        if (sleeping) d *= 0.3;                                        // sleeping animals barely get hungry
+        n[m] = Math.max(0, n[m] - d / 60 * needTick);
+      }
+    }
+    needTick = 0; if (selected) renderCard(); renderActions(); renderHUD(); renderClock();
+  }
+  updateOverlays();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+(async function start() {
+  const bar = $('load-bar'), txt = $('load-text');
+  try {
+    renderHUD();
+    const ids = Object.keys(SPECIES).filter(isUnlocked); let n = 0;
+    for (const id of ids) { txt.textContent = `Встречаем: ${SPECIES[id].name}…`; await loadSpecies(id); bar.style.width = (++n / ids.length * 100) + '%'; }
+    if (PLAYER) $('reserve-name').textContent = 'Заповедник: ' + PLAYER.name;
+    await goTo(S.loc);
+    const from = new URLSearchParams(location.search).get('from'); const fa = from && animals.find((x) => x.id === from);
+    if (fa) setTimeout(() => { select(fa); toast(`${nameOf(fa.id)} ждёт тебя в заповеднике!`); }, 900);
+    $('loading').style.opacity = 0; setTimeout(() => $('loading').remove(), 700);
+    renderCoach(); renderClock();
+    const daily = checkDaily(); save(); renderHUD();
+    if (daily && S.tut >= 3) { window.__daily = daily; setTimeout(() => openPanel('daily'), 900); }
+    frame();
+    if (window.Profile && !PLAYER) Profile.ensure(() => location.reload());
+  } catch (e) {
+    console.error(e); txt.textContent = 'Не удалось загрузить заповедник. Обнови страницу.';
+  }
+})();
+</script>
