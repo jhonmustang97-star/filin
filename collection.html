@@ -55,31 +55,33 @@ h1 { font-family: var(--display); font-size: clamp(28px, 8vw, 40px); line-height
 <body>
 <main class="wrap">
   <header>
-    <div class="eyebrow">Полевой дневник</div>
+    <div class="eyebrow">Полевой дневник · <span id="who"></span></div>
     <h1>Обитатели Шайтан-Тау</h1>
   </header>
 
   <section class="progress" aria-label="Прогресс коллекции">
-    <div class="label" id="progress-label">Найдено 0 из 6</div>
+    <div class="label" id="progress-label">Найдено 0</div>
     <div class="bar"><i id="progress-bar"></i></div>
   </section>
 
   <section class="grid" id="grid" aria-label="Коллекция"></section>
 
-  <a class="btn" href="index.html">Открыть камеру</a>
-  <p class="note">Коллекция хранится в этом браузере на твоём телефоне. Новых обитателей ищи по кодам в книжке: каждый открывается своим кодом.</p>
+  <a class="btn" href="game.html">В мой заповедник</a>
+  <a class="btn" href="index.html" style="background:transparent;color:var(--feather);border:1px solid var(--bark)">Открыть камеру</a>
+  <button class="btn" id="switch" type="button" style="background:transparent;color:var(--dusk);border:1px solid var(--bark);width:100%;cursor:pointer">Сменить игрока</button>
+  <p class="note">Коллекция хранится на этом телефоне, у каждого игрока своя. Новых обитателей ищи по QR-кодам на карточках в книжке.</p>
 </main>
 
+<script src="profile.js"></script>
+<script src="animals.js"></script>
 <script>
-const STORE_KEY = 'shaitantau.collection.v1';
-const RESIDENTS = [
-  { id: 'filin',   species: 'Филин',            icon: '🦉', href: 'index.html' },
-  { id: 'orel',    species: 'Степной орёл',     icon: '🦅' },
-  { id: 'baibak',  species: 'Сурок-байбак',     icon: '🐿️' },
-  { id: 'korsak',  species: 'Корсак',           icon: '🦊' },
-  { id: 'tulip',   species: 'Тюльпан Шренка',   icon: '🌷' },
-  { id: 'kovyl',   species: 'Ковыль перистый',  icon: '🌾' }
-];
+Profile.ensure((player) => {
+document.getElementById('who').textContent = player.avatar + ' ' + player.name;
+const STORE_KEY = Profile.key('shaitantau.collection.v1');
+const RESIDENTS = window.RESIDENTS.map((r) => {
+  const a = window.ANIMALS[r.id];
+  return a ? { id: r.id, species: a.species, icon: a.icon, href: 'index.html?a=' + r.id } : r;
+});
 let found = {};
 try { found = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { found = {}; }
 
@@ -109,6 +111,8 @@ for (const r of RESIDENTS) {
 }
 document.getElementById('progress-label').textContent = 'Найдено ' + count + ' из ' + RESIDENTS.length;
 requestAnimationFrame(() => { document.getElementById('progress-bar').style.width = (count / RESIDENTS.length * 100) + '%'; });
+});
+document.getElementById('switch').addEventListener('click', () => { Profile.signOut(); location.reload(); });
 </script>
 </body>
 </html>
