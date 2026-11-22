@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Мой заповедник</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -152,6 +152,87 @@ body.fp .hud-bottom, body.fp .dock, body.fp .coach { display: none; }
 #fp-ui .fp-act[disabled] { background: #9aa39a; cursor: default; }
 body.fishing-on #fp-ui .fp-joy, body.fishing-on #fp-ui .fp-act { display: none; }
 .dock button.walk .ico { color: var(--amber-deep); }
+.act { width: 70px; padding: 7px 4px 6px; border-radius: 16px; font-size: 11.5px; gap: 2px; }
+.act .ico { width: 24px; height: 24px; }
+.act .hint { display: none; }
+.actions.off { display: none; }
+.card { position: relative; }
+.card.mini { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; width: auto; max-width: min(540px, 100%); }
+.card.mini > .ico { width: 18px; height: 18px; color: var(--amber-deep); }
+.card.mini b { font-family: var(--display); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 34vw; }
+.minis { display: flex; gap: 8px; align-items: center; }
+.mn { display: flex; align-items: center; gap: 3px; }
+.mn .ico { width: 15px; height: 15px; }
+.mn i, .fa-need i { display: block; width: 26px; height: 6px; border-radius: 3px; background: rgba(35, 48, 31, .12); overflow: hidden; }
+.mn u, .fa-need u { display: block; height: 100%; }
+.mn.low .ico { animation: bump 1s ease infinite; }
+.card .more { border: 0; background: rgba(35, 48, 31, .07); border-radius: 10px; width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer; flex: none; color: var(--ink-soft); }
+.card .more .ico { width: 18px; height: 18px; }
+.card:not(.mini) .more { position: absolute; top: 8px; right: 8px; }
+.bubble.res { width: 32px; height: 32px; }
+.bubble.res .ico { width: 18px; height: 18px; }
+#photo-card { position: fixed; z-index: 31; right: max(12px, env(safe-area-inset-right)); top: calc(env(safe-area-inset-top) + 66px); display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; border-radius: 18px; transform: translateX(calc(100% + 30px)); transition: transform .35s cubic-bezier(.2, .8, .2, 1); pointer-events: none; background: var(--glass-strong); box-shadow: var(--shadow); }
+#photo-card.show { transform: none; }
+#photo-card .pic { width: 64px; height: 40px; flex: none; }
+#photo-card b { display: block; font-family: var(--display); font-size: 14px; }
+#photo-card span { font-size: 12px; font-weight: 800; color: var(--ink-soft); }
+.fishing .catch-pic { width: 120px; height: 75px; justify-self: center; }
+.finds { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.find { border-radius: 14px; background: rgba(255, 255, 255, .6); padding: 8px; display: grid; justify-items: center; gap: 2px; text-align: center; }
+.find .pic { width: 72px; height: 45px; }
+.find b { font-size: 12.5px; }
+.find small { font-size: 11px; color: var(--ink-soft); font-weight: 700; }
+.find.unknown .pic { filter: brightness(0) opacity(.25); }
+/* walk mode */
+body.fp .hud-top { display: none; }
+body.fp #overlay .tag { display: none; }
+body.fp .hud-top { align-items: flex-end; }
+body.fp .res { justify-content: flex-end; }
+#fp-ui .fp-exit { top: calc(env(safe-area-inset-top) + 12px); }
+#fp-ui .fp-hint { top: calc(env(safe-area-inset-top) + 104px); }
+#fp-ui .fp-compass { position: fixed; z-index: 12; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top) + 60px); width: min(380px, calc(100vw - 32px)); height: 34px; border-radius: 17px; background: rgba(255, 255, 255, .55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, .75); overflow: hidden; pointer-events: none; }
+.fc-n { position: absolute; left: 50%; top: 5px; bottom: 5px; width: 2px; background: rgba(35, 48, 31, .35); }
+.fc-i { position: absolute; top: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 2px; }
+.fc-i .ico { width: 20px; height: 20px; }
+.fc-i.an .ico { color: var(--amber-deep); width: 22px; height: 22px; }
+.fc-i em { font-style: normal; font-size: 10px; font-weight: 900; color: var(--ink-soft); }
+.fc-i.edge .ico { width: 14px; height: 14px; }
+#fp-ui .fp-bag { position: fixed; z-index: 12; left: max(12px, env(safe-area-inset-left)); top: calc(env(safe-area-inset-top) + 104px); display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border-radius: 14px; pointer-events: none; }
+#fp-ui .fp-bag span { display: flex; align-items: center; gap: 4px; font-weight: 900; font-size: 13px; font-variant-numeric: tabular-nums; }
+#fp-ui .fp-bag .ico { width: 18px; height: 18px; }
+#fp-ui .fp-label { position: fixed; z-index: 11; left: 0; top: 0; transform: translate(-50%, -100%); padding: 4px 10px; border-radius: 10px; background: rgba(30, 40, 24, .72); color: #fff; font-weight: 800; font-size: 13px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .2s; }
+#fp-ui .fp-animal { position: fixed; z-index: 13; right: max(14px, env(safe-area-inset-right)); bottom: calc(env(safe-area-inset-bottom) + 18px); width: min(320px, calc(100vw - 182px)); border-radius: 20px; padding: 10px; display: grid; gap: 8px; background: var(--glass-strong); box-shadow: var(--shadow); }
+#fp-ui .fp-animal[hidden] { display: none; }
+.fa-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.fa-head b { font-family: var(--display); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.fa-needs { display: flex; gap: 5px; flex: none; }
+.fa-need { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.fa-need .ico { width: 14px; height: 14px; }
+.fa-need i { width: 20px; height: 5px; }
+.fa-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.fa-acts button, .fa-foods button { border: 0; border-radius: 14px; padding: 7px 4px; background: rgba(255, 255, 255, .85); display: flex; flex-direction: column; align-items: center; gap: 2px; font-weight: 900; font-size: 11.5px; cursor: pointer; position: relative; min-width: 0; }
+.fa-acts .ico { width: 24px; height: 24px; color: var(--amber-deep); }
+.fa-acts button.need::after { content: ""; position: absolute; top: 5px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
+.fa-acts button[disabled] { opacity: .45; cursor: default; }
+.fa-foods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.fa-foods .ico { width: 24px; height: 24px; }
+.fa-foods small { font-size: 10px; color: var(--ink-soft); font-weight: 800; }
+.fa-foods button.empty { opacity: .5; }
+.fa-foods button.back { font-size: 16px; }
+#rotate { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: radial-gradient(120% 80% at 50% 0%, #4f7a45 0%, #2c4a2c 60%, #1f3320 100%); color: #f4ecd8; text-align: center; animation: rot-in .4s ease; }
+#rotate[hidden] { display: none; }
+@keyframes rot-in { from { opacity: 0; } }
+.rot-box { display: grid; justify-items: center; gap: 14px; max-width: 320px; }
+.rot-phone { width: 74px; height: 128px; border-radius: 16px; border: 5px solid #f4ecd8; display: grid; place-items: center; margin: 10px 0 20px; animation: rot-turn 2.6s cubic-bezier(.6, 0, .3, 1) infinite; box-shadow: 0 10px 30px rgba(0, 0, 0, .3); }
+.rot-screen { width: 52px; height: 98px; border-radius: 8px; background: linear-gradient(#cfe6c8, #93b44a); display: grid; place-items: center; }
+.rot-screen .ico { width: 30px; height: 30px; color: #3f6b32; animation: rot-counter 2.6s cubic-bezier(.6, 0, .3, 1) infinite; }
+@keyframes rot-turn { 0%, 20% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+@keyframes rot-counter { 0%, 20% { transform: rotate(0); } 55%, 85% { transform: rotate(90deg); } 100% { transform: rotate(0); } }
+#rotate h2 { margin: 0; font-family: var(--display); font-size: 24px; }
+#rotate p { margin: 0; font-weight: 700; line-height: 1.4; color: #dfe8d6; }
+.rot-go { border: 0; border-radius: 16px; padding: 15px 22px; font-weight: 900; font-size: 17px; background: var(--amber); color: #fff; cursor: pointer; width: 100%; }
+.rot-skip { border: 0; background: none; color: #dfe8d6; font-weight: 800; font-size: 15px; text-decoration: underline; cursor: pointer; padding: 8px; }
+@media (prefers-reduced-motion: reduce) { .rot-phone, .rot-screen .ico { animation: none; transform: rotate(-90deg); } }
 .b-row { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center; padding: 8px 12px; border-radius: 14px; background: rgba(255, 255, 255, .6); margin-bottom: 6px; }
 .b-row .ico { width: 32px; height: 32px; }
 .b-row small { display: block; color: var(--ink-soft); font-weight: 700; font-size: 12px; line-height: 1.3; }
@@ -242,7 +323,9 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
   .pill .plus { width: 20px; height: 20px; font-size: 15px; }
   .icon-btn { width: 36px; height: 36px; border-radius: 12px; }
   .dock { top: calc(env(safe-area-inset-top) + 196px); transform: none; padding: 5px; gap: 2px; }
-  .dock button { width: 52px; font-size: 9.5px; padding: 5px 2px 4px; }
+  .dock button { width: 44px; height: 42px; font-size: 0; padding: 0; gap: 0; justify-content: center; }
+  .dock .badge { top: -2px; right: -2px; }
+  #photo-card { top: calc(env(safe-area-inset-top) + 124px); }
   .dock .ico { width: 21px; height: 21px; }
   .hud-bottom { grid-template-columns: 1fr auto; gap: 8px; }
   .hud-bottom .loc { grid-column: 1; grid-row: 2; }
@@ -313,8 +396,14 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
   .empty-loc { top: 50%; width: min(360px, 60vw); padding: 12px; gap: 6px; }
   .fishing { bottom: calc(env(safe-area-inset-bottom) + 6px); padding: 10px 12px; gap: 6px; width: min(340px, 60vw); }
   .fishing .hook { padding: 10px; font-size: 16px; }
-  #fp-ui .fp-exit { top: calc(env(safe-area-inset-top) + 58px); padding: 8px 12px; }
-  #fp-ui .fp-hint { top: calc(env(safe-area-inset-top) + 56px); font-size: 12px; width: min(460px, 60vw); }
+  #fp-ui .fp-exit { top: calc(env(safe-area-inset-top) + 6px); padding: 8px 12px; }
+  #fp-ui .fp-compass { top: calc(env(safe-area-inset-top) + 8px); width: min(300px, 36vw); height: 30px; }
+  #fp-ui .fp-bag { top: calc(env(safe-area-inset-top) + 52px); }
+  #fp-ui .fp-animal { width: min(300px, 44vw); padding: 8px; gap: 6px; }
+  .fa-acts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .fa-foods { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  #photo-card { top: calc(env(safe-area-inset-top) + 50px); }
+  #fp-ui .fp-hint { top: calc(env(safe-area-inset-top) + 46px); font-size: 12px; width: min(460px, 60vw); }
   #fp-ui .fp-joy { width: 112px; height: 112px; bottom: calc(env(safe-area-inset-bottom) + 14px); }
   #fp-ui .fp-joy .knob { width: 48px; height: 48px; }
   #fp-ui .fp-act { bottom: calc(env(safe-area-inset-bottom) + 20px); padding: 10px 16px; font-size: 14px; }
@@ -346,6 +435,13 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
   <symbol id="i-spark" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2l2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2zM19 16l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/></symbol>
   <symbol id="i-food" viewBox="0 0 24 24"><path fill="#c2703a" d="M15 3c3.3 0 6 2.7 6 6 0 2.4-1.4 4.4-3.4 5.4L9.6 22.4a2.6 2.6 0 0 1-3.7-3.7l8-8C13 9.4 12 7.4 12 6c0-1.7 1.3-3 3-3z"/></symbol>
   <symbol id="i-berries" viewBox="0 0 24 24"><path fill="none" stroke="#4f8a32" stroke-width="2" stroke-linecap="round" d="M12 3c0 3 1 5 3 7M12 3c-1 3-3 5-5 6"/><circle cx="7" cy="13" r="4" fill="#3d5fb8"/><circle cx="15.5" cy="14" r="4" fill="#5574c9"/><circle cx="11" cy="18.5" r="3.6" fill="#2f4c9a"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="p-karas" viewBox="0 0 64 40"><path d="M52 20 L63 9 L61 20 L63 31 Z" fill="#c4892f"/><ellipse cx="30" cy="20" rx="24" ry="15" fill="#e0aa45"/><path d="M8 18 Q30 2 52 16 Q30 8 8 18Z" fill="#b8822c"/><path d="M24 6 Q33 0 41 7 Z" fill="#c4892f"/><path d="M27 33 Q33 40 39 33Z" fill="#c4892f"/><circle cx="13" cy="17" r="2.6" fill="#1f2a30"/><circle cx="12.3" cy="16.3" r=".8" fill="#fff"/><path d="M21 13q3 4 0 8M27 11q3 5 0 10M33 11q3 5 0 10M39 12q3 4 0 8" stroke="#b8822c" stroke-width="1.2" fill="none"/></symbol>
+  <symbol id="p-okun" viewBox="0 0 64 40"><path d="M50 20 L62 10 L60 20 L62 30 Z" fill="#e0662f"/><path d="M6 20 Q14 6 34 7 Q50 9 52 20 Q50 31 34 33 Q14 34 6 20Z" fill="#8fa14a"/><path d="M6 20 Q14 30 34 33 Q50 31 52 20 Q40 27 6 20Z" fill="#d9d39a"/><path d="M18 8 L20 2 L23 7 L25 1 L28 7 L31 2 L33 8Z" fill="#4f5a2a"/><path d="M30 31 L34 38 L37 31Z" fill="#e0662f"/><g stroke="#3f4a22" stroke-width="3" stroke-linecap="round"><path d="M20 10V27"/><path d="M27 8V30"/><path d="M34 8V30"/><path d="M41 10V28"/></g><circle cx="11" cy="17" r="2.6" fill="#f2c94c"/><circle cx="11" cy="17" r="1.3" fill="#1f2a30"/></symbol>
+  <symbol id="p-plotva" viewBox="0 0 64 40"><path d="M51 20 L63 11 L61 20 L63 29 Z" fill="#d64b3c"/><path d="M6 20 Q18 8 36 9 Q50 11 53 20 Q50 29 36 31 Q18 32 6 20Z" fill="#c9d6dd"/><path d="M6 20 Q18 8 36 9 Q50 11 53 20 Q36 15 6 20Z" fill="#7f98a8"/><path d="M27 10 Q31 3 36 9Z" fill="#d64b3c"/><path d="M26 30 Q30 37 34 30Z" fill="#d64b3c"/><path d="M18 25 Q21 30 24 25Z" fill="#d64b3c"/><circle cx="12" cy="18" r="2.8" fill="#d64b3c"/><circle cx="12" cy="18" r="1.3" fill="#1f2a30"/></symbol>
+  <symbol id="p-zem" viewBox="0 0 40 40"><path d="M20 37 C8 30 5 20 9 14 C13 9 18 11 20 13 C22 11 27 9 31 14 C35 20 32 30 20 37Z" fill="#d93a3a"/><path d="M12 12 L16 6 L20 10 L24 6 L28 12 Q20 9 12 12Z" fill="#4f8a32"/><path d="M20 10V3" stroke="#4f8a32" stroke-width="2" stroke-linecap="round"/><g fill="#ffe08a"><circle cx="14" cy="18" r="1"/><circle cx="20" cy="17" r="1"/><circle cx="26" cy="18" r="1"/><circle cx="17" cy="24" r="1"/><circle cx="23" cy="24" r="1"/><circle cx="20" cy="30" r="1"/><circle cx="12" cy="23" r="1"/><circle cx="28" cy="23" r="1"/></g></symbol>
+  <symbol id="p-vish" viewBox="0 0 40 40"><path d="M14 26 Q17 12 26 4 M26 26 Q25 14 26 4" stroke="#5a7a2e" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M26 4 Q33 2 35 8 Q29 10 26 4Z" fill="#6f9a38"/><circle cx="13" cy="29" r="8" fill="#8e1f2c"/><circle cx="27" cy="29" r="8" fill="#a8263a"/><circle cx="10" cy="26" r="2" fill="#e8798a"/><circle cx="24" cy="26" r="2" fill="#f08a9a"/></symbol>
   <symbol id="i-boot" viewBox="0 0 24 24"><path fill="#a0612a" d="M7 3h6v8l6 3c1.5.8 2 2 2 3.5V19H4V5a2 2 0 0 1 2-2z"/><path fill="#6e4325" d="M4 19h17v2H4z"/><path fill="none" stroke="#f4dcb0" stroke-width="1.4" stroke-linecap="round" d="M8 7h3M8 10h3"/></symbol>
   <symbol id="i-worm" viewBox="0 0 24 24"><path fill="none" stroke="#d98a8a" stroke-width="3.4" stroke-linecap="round" d="M3.5 15c2-4.5 5-4.5 6.2 0s4.3 4.5 6.3 0c1-2.2 3-2.6 4.3-1"/><circle cx="19.8" cy="13.2" r="0.9" fill="#5a2e2e"/></symbol>
   <symbol id="i-rod" viewBox="0 0 24 24"><path fill="none" stroke="#8a5a30" stroke-width="2.2" stroke-linecap="round" d="M3 21L17 4"/><path fill="none" stroke="#5a6b78" stroke-width="1" d="M17 4c2 4 3 8 3 11"/><circle cx="20" cy="17" r="2.6" fill="#e04a3a"/><path fill="#fff" d="M17.4 17h5.2a2.6 2.6 0 0 1-5.2 0z"/></symbol>
@@ -424,9 +520,23 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
   <button class="fp-exit glass" type="button" id="fp-exit"><svg class="ico"><use href="#i-map"/></svg>На карту</button>
   <div class="fp-hint glass" id="fp-hint">Иди джойстиком или клавишами WASD · Смотри, ведя пальцем по экрану · Нажимай на ягоды, траву и червяков</div>
   <div class="fp-cross"></div>
+  <div class="fp-compass" id="fp-compass" aria-hidden="true"></div>
+  <div class="fp-bag glass" id="fp-bag" aria-label="Корзинка"></div>
+  <div class="fp-label" id="fp-label" aria-hidden="true"></div>
+  <div class="fp-animal" id="fp-animal" hidden></div>
   <div class="fp-joy" id="fp-joy"><div class="knob" id="fp-knob"></div></div>
   <button class="fp-act" type="button" id="fp-act" hidden></button>
 </div>
+<div id="rotate" hidden>
+  <div class="rot-box">
+    <div class="rot-phone" aria-hidden="true"><div class="rot-screen"><svg class="ico"><use href="#i-pine"/></svg></div></div>
+    <h2>Поверни телефон</h2>
+    <p>Боком заповедник видно целиком, а кнопки не мешают игре.</p>
+    <button class="rot-go" type="button" id="rot-go">Повернуть экран</button>
+    <button class="rot-skip" type="button" id="rot-skip">Играть вертикально</button>
+  </div>
+</div>
+<div id="photo-card" role="status" aria-live="polite"></div>
 <div id="toast" class="glass" role="status" aria-live="polite"></div>
 <div class="panel-bg" id="panel-bg" hidden><section class="panel" id="panel" role="dialog" aria-modal="true"></section></div>
 
@@ -523,7 +633,7 @@ const EXCHANGE = [
 const PLAYER = window.Profile ? Profile.current() : null;
 const SAVE_KEY = window.Profile ? Profile.key('zapovednik.save.v2') : 'zapovednik.save.v2';
 const AR_KEY = window.Profile ? Profile.key('shaitantau.collection.v1') : 'shaitantau.collection.v1';            // written by the AR site when a QR card is scanned
-const fresh = () => ({ lvl: 1, xp: 0, cones: 60, leaves: 6, gems: 2, loc: 'shaitan', t: Date.now(), names: {}, unlocked: ['filin'],
+const fresh = () => ({ lvl: 1, xp: 0, cones: 60, leaves: 6, gems: 2, loc: 'shaitan', t: Date.now(), names: {}, unlocked: [],
   needs: Object.fromEntries(Object.keys(SPECIES).map((k, i) => [k, { food: 38 + i * 9, water: 44 + i * 7, mood: 66 - i * 5, clean: 58 + i * 6 }])),
   friend: Object.fromEntries(Object.keys(SPECIES).map((k) => [k, 0])), knowDiet: {}, nextGift: {}, seenFacts: {},
   tasks: { day: new Date().toDateString(), prog: {}, done: {} }, pantry: { berries: 2, grass: 3, worms: 2, fish: 1 }, res: {}, seenGather: {}, tut: 0, sound: true, cycle: true, streak: { last: '', n: 0 } });
@@ -1449,10 +1559,17 @@ function heartsHTML(id) {
 let editingName = false;
 function renderCard() {
   const c = $('card');
-  if (!selected) { c.className = 'card glass empty'; c.textContent = 'Нажми на животное, чтобы позаботиться о нём'; c.hidden = !animals.length; return; }
+  if (!selected) { c.hidden = true; return; }     // nothing selected: the island stays clear
   c.hidden = false;
   if (editingName) return;
   const a = selected, n = S.needs[a.id], sp = a.sp, f = S.friend[a.id], h = hearts(a.id);
+  if (!cardOpen) {                                  // short card: name and four small bars, details on tap
+    const st = statusOf(a);
+    c.className = 'card glass mini';
+    c.innerHTML = `${st ? svg(st[0]) : ''}<b>${esc(nameOf(a.id))}</b><span class="minis">${NEED_LIST.map(([k, l, ic]) => `<span class="mn${n[k] < 45 ? ' low' : ''}" title="${l}">${svg(ic)}<i><u style="width:${Math.round(n[k])}%;background:${needColor(n[k])}"></u></i></span>`).join('')}</span><button class="more" type="button" aria-label="Подробнее">${svg('i-info')}</button>`;
+    c.querySelector('.more').addEventListener('click', () => { cardOpen = true; renderCard(); });
+    return;
+  }
   const next = h < 4 ? `${Math.round(f % 25 / 25 * 100)}% до следующего ❤` : 'лучшие друзья';
   c.className = 'card glass';
   c.innerHTML = `<div class="avatar">${svg('i-paw', '#fff')}</div>
@@ -1462,7 +1579,10 @@ function renderCard() {
     ${(() => { const st = statusOf(a); return st ? `<div class="status">${svg(st[0])}${st[1]}</div>` : ''; })()}
     <div class="needs">${NEED_LIST.map(([k, l, ic]) => `<div class="need"><div class="lbl"><span>${svg(ic)}${l}</span><i>${Math.round(n[k])}</i></div><div class="bar"><i style="width:${Math.round(n[k])}%;background:${needColor(n[k])}"></i></div></div>`).join('')}</div>`;
   c.querySelector('.rename').addEventListener('click', startRename);
+  const less = document.createElement('button'); less.type = 'button'; less.className = 'more'; less.setAttribute('aria-label', 'Свернуть'); less.innerHTML = svg('i-down');
+  less.addEventListener('click', () => { cardOpen = false; renderCard(); }); c.appendChild(less);
 }
+let cardOpen = false;
 function startRename() {
   const a = selected; if (!a) return; editingName = true;
   const t = $('card').querySelector('.title');
@@ -1486,6 +1606,7 @@ function select(a) {
   renderCard(); renderActions();
 }
 function renderActions() {
+  document.querySelector('.actions').classList.toggle('off', !selected);
   document.querySelectorAll('.act').forEach((b) => {
     const busy = !selected || selected.caring || selected.state === 'fly';
     b.disabled = !!busy;
@@ -1734,9 +1855,9 @@ const GATHER = {
   fish: { food: 'fish', icon: 'i-rod', label: 'Порыбачить' }
 };
 const FISH_KINDS = [
-  ['Попался карась!', 'Караси живут в тихих прудах и умеют зарываться в ил.'],
-  ['Попался окунь!', 'Окуня узнают по полосатым бокам и колючему плавнику на спине.'],
-  ['Попалась плотва!', 'Плотва держится стайками недалеко от берега.']
+  ['Попался карась!', 'Караси живут в тихих прудах и умеют зарываться в ил.', 'karas'],
+  ['Попался окунь!', 'Окуня узнают по полосатым бокам и колючему плавнику на спине.', 'okun'],
+  ['Попалась плотва!', 'Плотва держится стайками недалеко от берега.', 'plotva']
 ];
 const BASKET_INFO = [
   ['berries', 'Ягодные кусты на Лесной поляне и куст степной вишни на Скалистом склоне'],
@@ -1801,7 +1922,7 @@ function renderFishing() {
       <button class="btn hook${f.phase === 'bite' ? ' hot' : ''}" type="button" id="fish-hook">Подсечь!</button>
       <div class="row"><small>Наживка: ${worms} ${svg('i-worm')}</small><button class="btn ghost" type="button" id="fish-stop">Смотать удочку</button></div>`;
   } else {
-    el.innerHTML = `<b class="ttl">${svg('i-rod')}Рыбалка</b><p>${esc(f.msg)}</p>
+    el.innerHTML = `<b class="ttl">${svg('i-rod')}Рыбалка</b>${f.fk ? `<svg class="catch-pic" aria-hidden="true"><use href="#p-${f.fk}"/></svg>` : ''}<p>${esc(f.msg)}</p>
       <div class="row"><small>Наживка: ${worms} ${svg('i-worm')}</small>${worms ? '<button class="btn" type="button" id="fish-again">Ещё заброс</button>' : ''}<button class="btn ghost" type="button" id="fish-stop">Готово</button></div>`;
   }
   const hk = $('fish-hook'); if (hk) hk.addEventListener('click', hookFish);
@@ -1811,7 +1932,7 @@ function renderFishing() {
 function newCast() {
   const f = fishing; if (!f) return;
   if ((S.pantry.worms || 0) < 1) { endFishing(); toast('Червяки закончились. Накопай ещё в земляных кочках'); return; }
-  f.phase = 'wait'; f.t = 0; f.wait = 2 + Math.random() * 3; f.msg = null; f.bob.visible = true;
+  f.phase = 'wait'; f.t = 0; f.wait = 2 + Math.random() * 3; f.msg = null; f.fk = null; f.bob.visible = true;
   addRipple(f.h.bobber.x, f.h.bobber.z); sfx('whoosh'); renderFishing();
 }
 function hookFish() {
@@ -1819,7 +1940,8 @@ function hookFish() {
   if (f.phase === 'wait') { f.msg = 'Рано! Рыба испугалась. Подсекай, когда поплавок нырнёт'; f.t = 0; f.wait = 2 + Math.random() * 2.5; sfx('no'); renderFishing(); return; }
   if (f.phase !== 'bite') return;
   S.pantry.worms -= 1;
-  const n = Math.random() < 0.2 ? 2 : 1, [line, fact] = FISH_KINDS[Math.floor(Math.random() * FISH_KINDS.length)];
+  const n = Math.random() < 0.2 ? 2 : 1, [line, fact, fk] = FISH_KINDS[Math.floor(Math.random() * FISH_KINDS.length)];
+  noteFind(fk, n); f.fk = fk;
   S.pantry.fish = (S.pantry.fish || 0) + n;
   const at = f.h.bobber.clone(); at.y = 0.4;
   if (fp) fpDebris(at, 0xd7f0fa, 10); else burst(at, 0xd7f0fa, 18, 'drop'); fx(at, `+${n}`, 'i-fish'); sfx('coin'); addXP(3); progress('gather5'); bumpBasket();
@@ -1896,7 +2018,7 @@ function enterFP(h) {
   fpTransition(new THREE.Vector3(pos.x, EYE, pos.z), fpQuat(yaw, pitch), FP_FOV, 1.0);
   controls.enabled = false;
   document.body.classList.add('fp'); $('fp-ui').hidden = false;
-  const hint = $('fp-hint'); hint.classList.remove('gone'); clearTimeout(hint._t); hint._t = setTimeout(() => hint.classList.add('gone'), 6000);
+  $('fp-hint').classList.add('gone'); renderCoach(); fpTip('move'); setTimeout(() => { if (fp) fpTip('compass'); }, 5500);
   renderFpAct(true); sfx('whoosh');
 }
 function fpTransition(toPos, toQuat, toFov, dur, then) {
@@ -1905,10 +2027,11 @@ function fpTransition(toPos, toQuat, toFov, dur, then) {
 function exitFP() {
   if (!fp || fp.leaving) return;
   if (fishing) endFishing();
-  fp.leaving = true; $('fp-act').hidden = true;
+  fp.leaving = true; $('fp-act').hidden = true; $('fp-animal').hidden = true; $('fp-label').style.opacity = 0;
   fpTransition(fp.back.pos, fp.back.quat, fp.back.fov, 0.9, () => {
     fp = null; controls.enabled = true; controls.update();
     document.body.classList.remove('fp'); $('fp-ui').hidden = true;
+    selected = null; selRing.visible = false; renderCard(); renderActions(); renderCoach();
   });
   sfx('whoosh');
 }
@@ -1917,6 +2040,7 @@ function exitFPNow() {
   if (fishing) { fishing = null; renderFishing(); }
   camera.position.copy(fp.back.pos); camera.quaternion.copy(fp.back.quat); camera.fov = fp.back.fov; camera.updateProjectionMatrix();
   fp = null; controls.enabled = true; document.body.classList.remove('fp'); $('fp-ui').hidden = true;
+  selected = null; selRing.visible = false; renderCard(); renderActions();
 }
 function fpUpdate(dt) {
   const f = fp;
@@ -1964,7 +2088,11 @@ function fpUpdate(dt) {
     if (ang > 1.1 && d > 1.2) continue;
     if (d < bd) { bd = d; best = h; }
   }
+  fpAnimalUpdate(f, dt, best ? bd : 99);
+  if (f.nearAnimal) best = null;
   if (best !== f.near || (best && best._lbl !== actLabel(best))) { f.near = best; renderFpAct(); }
+  if (best) fpTip('near');
+  renderCompass(f); renderFpLabel(f);
 }
 function actLabel(h) {
   if (h.kind === 'fish') return 'Рыбачить';
@@ -1976,7 +2104,7 @@ function actLabel(h) {
 function renderFpAct() {
   const b = $('fp-act'); if (!fp) return;
   const h = fp.near;
-  if (!h || fp.atPier || fp.trans) { b.hidden = true; return; }
+  if (!h || fp.atPier || fp.trans || fp.nearAnimal) { b.hidden = true; return; }
   h._lbl = actLabel(h);
   b.hidden = false; b.innerHTML = `${svg(GATHER[h.kind].icon)}<span>${h._lbl}</span>`;
   b.disabled = h.kind !== 'fish' && !harvestReady(h);
@@ -2034,10 +2162,11 @@ function actOn(h, part) {
     const cl = part && part.visible ? part : h.clusters.find((c) => c.visible); if (!cl) return;
     cl.visible = false; const at = wpos(cl);
     fpDebris(at, 0xa8142e, 6); gainFood('berries', at);
+    { const bk = S.loc === 'bor' ? 'zem' : 'vish'; noteFind(bk); showPhoto(bk, '+1 в корзинку'); }
     if (!h.clusters.some((c) => c.visible)) completeSource(h);
   } else if (h.kind === 'grass') {
     h.cuts = (h.cuts || 0) + 1; h.blades.scale.y = Math.max(0.3, 1 - h.cuts * 0.25);
-    const at = h.anchor.clone(); at.y = 0.6; fpDebris(at, 0x9ab24f, 8); gainFood('grass', at);
+    const at = h.anchor.clone(); at.y = 0.6; fpDebris(at, 0x9ab24f, 8); gainFood('grass', at); noteFind('grass'); showPhoto('grass', '+1 в корзинку');
     if (h.cuts >= 3) completeSource(h);
   } else if (h.kind === 'dig') {
     if (!h.dug) {
@@ -2050,7 +2179,7 @@ function actOn(h, part) {
       } else toast(`Копаем… ещё ${3 - h.digs}`, 900);
     } else {
       const w = part && part.visible ? part : h.worms.find((x) => x.visible); if (!w) return;
-      w.visible = false; gainFood('worms', wpos(w));
+      w.visible = false; gainFood('worms', wpos(w)); noteFind('worm'); showPhoto('worm', '+1 · наживка для рыбалки');
       if (!h.worms.some((x) => x.visible)) { h.dug = 0; h.digs = 0; completeSource(h); }
     }
   }
@@ -2124,6 +2253,123 @@ function fpTap(cx, cy) {
   $('fp-exit').addEventListener('click', exitFP);
 })();
 
+
+/* ---------- pictures of what lands in the basket ---------- */
+const ITEM_PICS = {
+  karas: ['p-karas', 'Карась'], okun: ['p-okun', 'Окунь'], plotva: ['p-plotva', 'Плотва'],
+  zem: ['p-zem', 'Земляника'], vish: ['p-vish', 'Степная вишня'], grass: ['i-grass', 'Степные травы'], worm: ['i-worm', 'Дождевой червь']
+};
+const FINDS = ['karas', 'okun', 'plotva', 'zem', 'vish', 'grass', 'worm'];
+function noteFind(kind, n) { S.finds = S.finds || {}; S.finds[kind] = (S.finds[kind] || 0) + (n || 1); }
+function showPhoto(kind, line) {
+  const p = ITEM_PICS[kind]; if (!p) return;
+  const el = $('photo-card');
+  el.innerHTML = `<svg class="pic" aria-hidden="true"><use href="#${p[0]}"/></svg><div><b>${p[1]}</b><span>${esc(line)}</span></div>`;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+/* ---------- walk mode: animals up close, compass, labels, tips ---------- */
+const FP_TIPS = {
+  move: 'Иди джойстиком, оглядывайся, ведя пальцем по экрану',
+  compass: 'Значки вверху показывают, где звери и что можно собрать',
+  near: 'Нажимай прямо на ягоды, траву и червяков или на кнопку справа',
+  animal: 'Ты рядом с животным: покорми, напои, поиграй или почисти его'
+};
+function fpTip(key) {
+  S.fpTips = S.fpTips || {};
+  if (S.fpTips[key]) return;
+  S.fpTips[key] = 1; save();
+  const h = $('fp-hint'); h.textContent = FP_TIPS[key]; h.classList.remove('gone');
+  clearTimeout(h._t); h._t = setTimeout(() => h.classList.add('gone'), 5000);
+}
+const SRC_NAME = { berry: () => (S.loc === 'bor' ? 'Куст земляники' : 'Куст степной вишни'), grass: () => 'Пучок степных трав', dig: () => 'Земляная кочка', fish: () => 'Мостки для рыбалки' };
+function animalNear(f) {
+  let best = null, bd = 9;
+  for (const a of animals) {
+    if (a.state === 'sleep' || a.state === 'fly' || !a.model.visible) continue;
+    const p = a.root.position, d = Math.hypot(f.pos.x - p.x, f.pos.z - p.z);
+    if (d > 2.8 + a.radius * 0.5) continue;
+    const ang = Math.abs(Math.atan2(Math.sin(yawTo(f.pos, p) - f.yaw), Math.cos(yawTo(f.pos, p) - f.yaw)));
+    if (ang > 1.0 && d > 1.4) continue;
+    if (d < bd) { bd = d; best = a; }
+  }
+  return best ? { a: best, d: bd } : null;
+}
+function fpAnimalUpdate(f, dt, harvestD) {
+  const na = f.atPier ? null : animalNear(f);
+  const a = na && na.d < harvestD ? na.a : null;
+  if (a !== f.nearAnimal) {
+    f.nearAnimal = a; f.foodOpen = false;
+    if (a) { selected = a; selRing.visible = true; selRing.scale.setScalar(a.radius + 0.35); fpTip('animal'); }
+    else if (selected && !selected.caring) { selected = null; selRing.visible = false; }
+    renderFpAnimal(); renderFpAct();
+  }
+  if (a) {
+    // the animal turns to look at you when it isn't busy
+    if (!a.perched && (a.state === 'idle' || a.state === 'act') && !a.caring) {
+      const want = Math.atan2(f.pos.x - a.root.position.x, f.pos.z - a.root.position.z);
+      let diff = want - a.root.rotation.y; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      a.root.rotation.y += diff * Math.min(1, dt * 2.5);
+    }
+    f.faT = (f.faT || 0) + dt; if (f.faT > 0.5) { f.faT = 0; if (!f.foodOpen) renderFpAnimal(); }
+  }
+}
+function renderFpAnimal() {
+  const el = $('fp-animal'); const a = fp && fp.nearAnimal;
+  if (!a || fp.trans) { el.hidden = true; return; }
+  el.hidden = false;
+  const n = S.needs[a.id];
+  const head = `<div class="fa-head"><b>${esc(nameOf(a.id))}</b><span class="fa-needs">${NEED_LIST.map(([k, l, ic]) => `<span class="fa-need" title="${l}">${svg(ic)}<i><u style="width:${Math.round(n[k])}%;background:${needColor(n[k])}"></u></i></span>`).join('')}</span></div>`;
+  if (fp.foodOpen) {
+    el.innerHTML = head + `<div class="fa-foods">${Object.entries(FOODS).map(([k, fd]) => `<button type="button" data-food="${k}" class="${fd.gather && !(S.pantry[k] > 0) ? 'empty' : ''}">${svg(fd.icon)}<span>${fd.name}</span><small>${fd.gather ? (S.pantry[k] || 0) + ' шт' : fd.cost + ' шиш.'}</small></button>`).join('')}<button type="button" data-food="back" class="back">←<span>Назад</span></button></div>`;
+    el.querySelectorAll('[data-food]').forEach((b) => b.addEventListener('click', () => {
+      if (b.dataset.food === 'back') { fp.foodOpen = false; renderFpAnimal(); return; }
+      selected = a; fp.foodOpen = false; feed(b.dataset.food); renderFpAnimal();
+    }));
+    return;
+  }
+  const acts = [['feed', 'i-bowl', 'Покормить'], ['water', 'i-drop', 'Напоить'], ['play', 'i-ball', 'Поиграть'], ['clean', 'i-brush', 'Почистить']];
+  const busy = a.caring || a.state === 'fly';
+  el.innerHTML = head + `<div class="fa-acts">${acts.map(([k, ic, l]) => `<button type="button" data-fa="${k}" class="${n[ACT_NEED[k]] < 45 ? 'need' : ''}" ${busy ? 'disabled' : ''}>${svg(ic)}<span>${l}</span></button>`).join('')}</div>`;
+  el.querySelectorAll('[data-fa]').forEach((b) => b.addEventListener('click', () => {
+    selected = a; sfx('tap');
+    if (b.dataset.fa === 'feed') { if (readyForCare(a)) { fp.foodOpen = true; renderFpAnimal(); } return; }
+    care(b.dataset.fa); setTimeout(renderFpAnimal, 200);
+  }));
+}
+// compass strip: where the animals and the ready sources are, relative to where you look
+function renderCompass(f) {
+  f.cT = (f.cT || 0) + 1; if (f.cT % 6) return;
+  const items = [];
+  for (const a of animals) {
+    if (!a.model.visible || a.state === 'sleep') continue;
+    items.push({ p: a.root.position, ic: 'i-paw', cls: 'an', label: nameOf(a.id) });
+  }
+  for (const h of harvest) if (harvestReady(h)) items.push({ p: h.anchor, ic: GATHER[h.kind].icon, cls: 'src' });
+  const html = [];
+  for (const it of items) {
+    const d = Math.hypot(f.pos.x - it.p.x, f.pos.z - it.p.z); if (d < 1.2) continue;
+    const rel = Math.atan2(Math.sin(yawTo(f.pos, it.p) - f.yaw), Math.cos(yawTo(f.pos, it.p) - f.yaw));
+    const edge = Math.abs(rel) > 1.3;
+    const x = edge ? (rel > 0 ? 2 : 98) : 50 - rel / 1.3 * 48;
+    html.push(`<span class="fc-i ${it.cls}${edge ? ' edge' : ''}" style="left:${x.toFixed(1)}%;opacity:${Math.max(0.35, 1 - d / 16).toFixed(2)}">${svg(it.ic)}${it.cls === 'an' && !edge ? `<em>${Math.round(d)} м</em>` : ''}</span>`);
+  }
+  $('fp-compass').innerHTML = '<span class="fc-n"></span>' + html.join('');
+  // basket counts while walking
+  $('fp-bag').innerHTML = ['berries', 'grass', 'worms', 'fish'].map((k) => `<span>${svg(FOODS[k].icon)}${S.pantry[k] || 0}</span>`).join('');
+}
+// floating name over whatever you are about to use
+function renderFpLabel(f) {
+  const el = $('fp-label');
+  let txt = null, at = null;
+  if (f.nearAnimal) { const a = f.nearAnimal; txt = nameOf(a.id) + (nameOf(a.id) !== a.sp.name ? ' · ' + a.sp.name : ''); at = a.root.position.clone(); at.y += a.sp.height + 0.35; }
+  else if (f.near) { txt = SRC_NAME[f.near.kind](); at = f.near.anchor.clone(); at.y += 0.1; }
+  if (!txt || f.trans || f.atPier) { el.style.opacity = 0; return; }
+  const [x, y, vis] = project(at);
+  el.style.opacity = vis ? 1 : 0; el.textContent = txt; el.style.left = x + 'px'; el.style.top = y + 'px';
+}
+
 /* ======================================================================= tutorial */
 const TUT = [
   'Привет! Это твой заповедник. Нажми на животное, чтобы познакомиться.',
@@ -2134,7 +2380,7 @@ const TUT = [
 function setTut(n) { S.tut = n; save(); renderCoach(); }
 function renderCoach() {
   const c = $('coach');
-  if (S.tut >= TUT.length) { c.hidden = true; return; }
+  if (S.tut >= TUT.length || !S.unlocked.length || document.body.classList.contains('fp')) { c.hidden = true; return; }
   c.hidden = false;
   const last = S.tut === TUT.length - 1;
   c.innerHTML = `<div class="face">${svg('i-paw', '#fff')}</div><p>${TUT[S.tut]}</p><div class="row">${last ? '' : '<button type="button" id="tut-skip">Пропустить</button>'}${last ? '<button type="button" class="go" id="tut-next">Понятно</button>' : ''}</div>`;
@@ -2167,7 +2413,8 @@ function openPanel(kind) {
     save(); renderHUD();
   } else if (kind === 'basket') {
     html += `<h2>Корзинка</h2><p class="lead">Ягоды, травы, червей и рыбу добываешь сам: нажимай на кусты, кочки и мостки у пруда. Мясо и мышей хищникам привозит егерь за шишки.</p>` +
-      BASKET_INFO.map(([k, info]) => { const f = FOODS[k]; return `<div class="b-row">${svg(f.icon)}<div><b>${f.name}</b><small>${info}</small></div><span class="cnt">${f.gather ? (S.pantry[k] || 0) : f.cost + ' ' + svg('i-cone')}</span></div>`; }).join('');
+      BASKET_INFO.map(([k, info]) => { const f = FOODS[k]; return `<div class="b-row">${svg(f.icon)}<div><b>${f.name}</b><small>${info}</small></div><span class="cnt">${f.gather ? (S.pantry[k] || 0) : f.cost + ' ' + svg('i-cone')}</span></div>`; }).join('') +
+      `<h3>Мои находки</h3><div class="finds">${FINDS.map((k) => { const c = (S.finds || {})[k] || 0; return `<div class="find${c ? '' : ' unknown'}"><svg class="pic" aria-hidden="true"><use href="#${ITEM_PICS[k][0]}"/></svg><b>${c ? ITEM_PICS[k][1] : '???'}</b><small>${c ? 'найдено: ' + c : 'ещё не найдено'}</small></div>`; }).join('')}</div>`;
   } else if (kind === 'collection') {
     const total = Object.keys(SPECIES).length + SOON.length;
     html += `<h2>Коллекция</h2><p class="lead">Найдено ${S.unlocked.length} из ${total}. Код жителя — это ответ на кроссворд в книжке. Найденные по QR-карточкам животные появляются здесь сами.</p>
@@ -2251,6 +2498,17 @@ function openPanel(kind) {
     else { sr.dataset.armed = '1'; sr.textContent = 'Точно сбросить?'; }
   });
 }
+// entering the game on a phone held upright: suggest turning it, the screen hides itself once the phone is sideways
+function showRotateHint() {
+  const portraitPhone = () => innerWidth < 760 && innerHeight > innerWidth;
+  if (!portraitPhone()) return;
+  const r = $('rotate'); r.hidden = false;
+  const close = () => { r.hidden = true; removeEventListener('resize', onTurn); };
+  const onTurn = () => { if (!portraitPhone()) close(); };
+  addEventListener('resize', onTurn);
+  $('rot-go').onclick = () => { toggleLandscape().then(() => { if (!portraitPhone()) close(); }); };
+  $('rot-skip').onclick = close;
+}
 function isLandscapeMode() { return !!document.fullscreenElement && innerWidth > innerHeight; }
 async function toggleLandscape() {
   if (document.fullscreenElement) {
@@ -2302,7 +2560,7 @@ async function goToNow(locId) {
   const empty = $('empty-loc');
   if (!animals.length) {
     empty.hidden = false;
-    empty.innerHTML = `${svg('i-lock', 'var(--amber-deep)')}<b>Здесь пока никто не живёт</b><p>Жители ${L.nameGen}: ${L.animals.map((id) => SPECIES[id].name.toLowerCase()).join(' и ')}. Открой их кодами из книжки.</p><button class="btn" type="button" id="empty-go">${svg('i-key')}Ввести код</button>`;
+    empty.innerHTML = `${svg('i-lock', 'var(--amber-deep)')}<b>Здесь пока никто не живёт</b><p>Жители ${L.nameGen}: ${L.animals.map((id) => SPECIES[id].name.toLowerCase()).join(', ')}. Найди их карточки в книжке: отсканируй QR и введи кодовое слово.</p><button class="btn" type="button" id="empty-go">${svg('i-key')}Ввести код</button>`;
     $('empty-go').addEventListener('click', () => openPanel('collection'));
   } else empty.hidden = true;
   renderCard();
@@ -2360,7 +2618,7 @@ function frame() {
     await goTo(S.loc);
     const from = new URLSearchParams(location.search).get('from'); const fa = from && animals.find((x) => x.id === from);
     if (fa) setTimeout(() => { select(fa); toast(`${nameOf(fa.id)} ждёт тебя в заповеднике!`); }, 900);
-    $('loading').style.opacity = 0; setTimeout(() => $('loading').remove(), 700);
+    $('loading').style.opacity = 0; setTimeout(showRotateHint, 500); setTimeout(() => $('loading').remove(), 700);
     renderCoach(); renderClock();
     const daily = checkDaily(); save(); renderHUD();
     if (daily && S.tut >= 3) { window.__daily = daily; setTimeout(() => openPanel('daily'), 900); }
