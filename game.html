@@ -259,6 +259,66 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
   .clock small { display: none; }
   .coach { top: calc(env(safe-area-inset-top) + 200px); left: calc(50% + 30px); width: min(460px, calc(100vw - 96px)); }
 }
+/* ---------- phone held sideways ---------- */
+@media (orientation: landscape) and (max-height: 520px) {
+  .hud-top { top: calc(env(safe-area-inset-top) + 6px); gap: 6px; flex-direction: row; align-items: flex-start; }
+  .res { justify-content: flex-end; flex: none; }
+  .left-col { min-width: 0; }
+  .profile .name { max-width: 30vw; overflow: hidden; text-overflow: ellipsis; }
+  .left-col { flex-direction: row; align-items: center; gap: 6px; }
+  .profile { padding: 4px 12px 4px 4px; gap: 8px; border-radius: 18px; }
+  .lvl-ring { width: 38px; height: 38px; }
+  .lvl-ring .num { font-size: 14px; }
+  .profile .name { font-size: 13px; }
+  .profile .sub { font-size: 11px; }
+  .clock { margin-top: 0; padding: 6px 10px 6px 8px; font-size: 12px; }
+  .clock small { display: none; }
+  .res { gap: 5px; flex-wrap: nowrap; }
+  .pill { padding: 4px 4px 4px 7px; font-size: 13px; gap: 5px; }
+  .pill .ico, .pill .plus { width: 20px; height: 20px; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 12px; }
+  .dock { top: calc(env(safe-area-inset-top) + 58px); transform: none; padding: 4px; gap: 2px; border-radius: 18px; max-height: calc(100vh - 128px); overflow-y: auto; }
+  .dock button { width: 40px; height: 36px; padding: 0; font-size: 0; gap: 0; justify-content: center; border-radius: 12px; }
+  .dock .ico { width: 22px; height: 22px; }
+  .dock .badge { top: -2px; right: -2px; }
+  .hud-bottom { grid-template-columns: auto minmax(0, 1fr) auto; bottom: calc(env(safe-area-inset-bottom) + 6px); gap: 8px; align-items: end; }
+  .hud-bottom .loc, .hud-bottom .center, .hud-bottom .round { grid-row: 1; }
+  .hud-bottom .loc { grid-column: 1; }
+  .hud-bottom .center { grid-column: 2; }
+  .hud-bottom .round { grid-column: 3; width: 44px; height: 44px; border-radius: 14px; }
+  .loc { padding: 4px; border-radius: 14px; }
+  .loc .thumb { width: 36px; height: 36px; border-radius: 11px; }
+  .loc > span:not(.thumb), .loc > svg { display: none; }
+  .center { flex-direction: row; align-items: flex-end; justify-content: center; gap: 8px; }
+  .card { width: min(400px, 100%); padding: 8px 10px; gap: 3px 10px; border-radius: 18px; }
+  .card.empty { font-size: 12.5px; padding: 10px; }
+  .card .avatar { width: 40px; height: 40px; border-radius: 12px; }
+  .card .avatar .ico { width: 22px; height: 22px; }
+  .card .title b { font-size: 14px; }
+  .needs { gap: 6px; }
+  .need .lbl { font-size: 10px; }
+  .status { font-size: 11px; }
+  .actions { display: grid; grid-template-columns: repeat(2, 66px); gap: 5px; flex: none; width: auto; }
+  .act { width: auto; padding: 5px 2px 4px; font-size: 10.5px; border-radius: 14px; gap: 1px; }
+  .act .ico { width: 20px; height: 20px; }
+  .act .hint { display: none; }
+  .foods { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 6px); top: auto; max-height: calc(100vh - 70px); overflow-y: auto; width: min(560px, calc(100vw - 120px)); }
+  .food-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .panel { max-height: calc(100vh - 24px); padding: 14px 16px; border-radius: 20px; }
+  .panel-bg { padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
+  .coach { top: calc(env(safe-area-inset-top) + 56px); left: auto; right: max(12px, env(safe-area-inset-right)); transform: none; width: min(360px, 46vw); padding: 8px 10px; }
+  .coach p { font-size: 12.5px; }
+  .coach .face { width: 34px; height: 34px; }
+  #toast { top: calc(env(safe-area-inset-top) + 56px); }
+  .empty-loc { top: 50%; width: min(360px, 60vw); padding: 12px; gap: 6px; }
+  .fishing { bottom: calc(env(safe-area-inset-bottom) + 6px); padding: 10px 12px; gap: 6px; width: min(340px, 60vw); }
+  .fishing .hook { padding: 10px; font-size: 16px; }
+  #fp-ui .fp-exit { top: calc(env(safe-area-inset-top) + 58px); padding: 8px 12px; }
+  #fp-ui .fp-hint { top: calc(env(safe-area-inset-top) + 56px); font-size: 12px; width: min(460px, 60vw); }
+  #fp-ui .fp-joy { width: 112px; height: 112px; bottom: calc(env(safe-area-inset-bottom) + 14px); }
+  #fp-ui .fp-joy .knob { width: 48px; height: 48px; }
+  #fp-ui .fp-act { bottom: calc(env(safe-area-inset-bottom) + 20px); padding: 10px 16px; font-size: 14px; }
+}
 @media (prefers-reduced-motion: reduce) { .bubble { animation: none; } .fx { animation-duration: .01s; } }
 </style>
 
@@ -387,7 +447,7 @@ const FOODS = {
   mouse:   { name: 'Мышь', icon: 'i-mouse', cost: 4 }
 };
 const SPECIES = {
-  filin: { active: 'night', name: 'Филин', latin: 'Bubo bubo', height: 1.25, speed: 0, file: 'm-filin.js', idleClip: 'Idle_Folded', home: 'shaitan', code: 'НОЧЬ',
+  filin: { active: 'night', name: 'Филин', latin: 'Bubo bubo', height: 1.25, speed: 0, file: 'm-filin.js', idleClip: 'Idle_Folded', home: 'shaitan',
     diet: ['mouse', 'meat'], dietText: 'грызунов, зайцев и птиц',
     wrong: { worms: 'Филину нужна добыча покрупнее: червяки ему не еда.', plant: 'Филин — хищная птица, растения он не ест.', fish: 'Филин ловит в основном грызунов и зайцев, рыба ему почти не нужна.' },
     clips: { eat: 'Perch_Flap_Once', refuse: 'Perch_Flap_Once', play: 'Perch_Open_Flap_Fold', clean: 'Perch_Flap_Once', idle: ['Perch_Flap_Once', 'fly', 'Perch_Open_Flap_Fold', 'fly'] },
@@ -396,7 +456,7 @@ const SPECIES = {
       'Летает бесшумно: мягкая бахрома на краях перьев гасит звук взмаха.',
       '«Ушки» филина — это пучки перьев. Настоящие уши спрятаны по бокам головы.',
       'Филин — редкий вид и охраняется законом.'] },
-  baibak: { active: 'day', name: 'Сурок-байбак', latin: 'Marmota bobak', height: 0.78, speed: 0.75, file: 'm-baibak.js', home: 'shaitan', code: 'НОРА',
+  baibak: { active: 'day', name: 'Сурок-байбак', latin: 'Marmota bobak', height: 0.78, speed: 0.75, file: 'm-baibak.js', home: 'shaitan',
     diet: ['grass'], dietText: 'травы и молодые побеги',
     wrong: { worms: 'Байбак травоядный: червей он не ест, ему нужны травы.', berries: 'В степи байбак ест травы и побеги, ягод там почти нет.', animal: 'Байбак — травоядный, мясо и рыбу он не ест.' },
     clips: { eat: 'Eat', refuse: 'LookAround', play: 'TailWag', clean: 'Sniff', idle: ['Stand', 'LookAround', 'Sniff', 'Eat'] },
@@ -405,7 +465,7 @@ const SPECIES = {
       'Часовые встают «столбиком» и свистом предупреждают всех об опасности.',
       'Зимой байбак спит в норе почти полгода.',
       'Байбаки перекапывают степную почву и помогают ей оставаться плодородной.'] },
-  medved: { active: 'any', name: 'Бурый медведь', latin: 'Ursus arctos', height: 1.65, speed: 0.9, file: 'm-medved.js', home: 'bor', code: 'БЕРЛОГА',
+  medved: { active: 'any', name: 'Бурый медведь', latin: 'Ursus arctos', height: 1.65, speed: 0.9, file: 'm-medved.js', home: 'bor',
     diet: ['berries', 'fish', 'grass', 'worms', 'meat'], dietText: 'почти всё: ягоды, рыбу, травы, червей и личинок, мясо',
     wrong: { mouse: 'Мышь слишком мала: медведю нужно много еды, ему не до мышей.' },
     clips: { eat: 'Eat', refuse: 'Shake', play: 'Sniff', clean: 'Shake', idle: ['LookAround', 'Sniff', 'Shift', 'Roar'] },
@@ -414,7 +474,7 @@ const SPECIES = {
       'Нюх у медведя во много раз острее, чем у собаки.',
       'Зимой медведь спит в берлоге и несколько месяцев ничего не ест.',
       'Несмотря на вес, медведь бегает со скоростью до 50 км/ч.'] },
-  rys: { active: 'dusk', name: 'Рысь', latin: 'Lynx lynx', height: 1.15, speed: 1.1, file: 'm-rys.js', home: 'bor', code: 'КИСТОЧКИ',
+  rys: { active: 'dusk', name: 'Рысь', latin: 'Lynx lynx', height: 1.15, speed: 1.1, file: 'm-rys.js', home: 'bor',
     diet: ['meat', 'mouse'], dietText: 'зайцев, птиц и мелких зверей',
     wrong: { worms: 'Рысь охотится на зайцев и птиц, червяки ей не интересны.', plant: 'Рысь — хищник, растения она не ест.', fish: 'Рысь охотится на зайцев и птиц, рыбу почти не ловит.' },
     clips: { eat: 'Eat', refuse: 'EarTwitch', play: 'Hunt', clean: 'TailFlick', idle: ['Hunt', 'LookAround', 'EarTwitch', 'TailFlick'] },
@@ -423,7 +483,7 @@ const SPECIES = {
       'Широкие мохнатые лапы работают как снегоступы.',
       'В темноте рысь видит во много раз лучше человека.',
       'Рысь может прыгнуть на 4 метра в длину.'] },
-  sapsan: { active: 'day', name: 'Сапсан', latin: 'Falco peregrinus', height: 0.85, speed: 0, file: 'm-sapsan.js', idleClip: 'Idle_Folded', home: 'shaitan', code: 'СКАЛА',
+  sapsan: { active: 'day', name: 'Сапсан', latin: 'Falco peregrinus', height: 0.85, speed: 0, file: 'm-sapsan.js', idleClip: 'Idle_Folded', home: 'shaitan',
     diet: ['meat'], dietText: 'птиц, которых ловит прямо в воздухе',
     wrong: { mouse: 'Сапсан ловит птиц прямо в полёте, мыши ему почти не попадаются.', worms: 'Червяки сапсану не нужны: он охотится на птиц.', plant: 'Сапсан — хищная птица, растения он не ест.', fish: 'Сапсан охотится на птиц, рыбу он не ловит.' },
     clips: { eat: 'Perch_Flap_Once', refuse: 'Perch_Flap_Once', play: 'Perch_Open_Flap_Fold', clean: 'Perch_Flap_Once', idle: ['Perch_Flap_Once', 'fly', 'Perch_Open_Flap_Fold', 'fly'] },
@@ -2120,7 +2180,7 @@ function openPanel(kind) {
           : `<div class="tile locked"><div class="pic">${svg('i-lock')}</div><b>???</b><small>Живёт: ${where}. Нужен код из книжки</small></div>`;
       }).join('') +
       SOON.map((l) => `<div class="tile locked"><div class="pic">${svg('i-lock')}</div><b>???</b><small>${l.name} · ${l.where}. Скоро в заповеднике</small></div>`).join('') + `</div>
-      <div class="note">Тестовая версия. Коды для проверки: ${Object.values(SPECIES).map((s) => s.code).join(', ')}.</div>`;
+      <div class="note">Кодовые слова спрятаны в кроссворде книжки: у каждого жителя своё.</div>`;
   } else if (kind === 'tasks') {
     html += `<h2>Задания на сегодня</h2><p class="lead">Выполняй и забирай награды. Новые задания появятся завтра.</p>` +
       TASKS.map((t) => {
@@ -2145,6 +2205,7 @@ function openPanel(kind) {
     html += `<h2>Настройки</h2>
       <div class="setting"><span>Звуки</span><button class="btn ${S.sound ? '' : 'ghost'}" type="button" id="set-sound">${S.sound ? 'Включены' : 'Выключены'}</button></div>
       <div class="setting"><span>Смена дня и ночи</span><button class="btn ${S.cycle ? '' : 'ghost'}" type="button" id="set-cycle">${S.cycle ? 'Включена' : 'Всегда день'}</button></div>
+      <div class="setting"><span>Горизонтальный экран</span><button class="btn ${isLandscapeMode() ? '' : 'ghost'}" type="button" id="set-land">${isLandscapeMode() ? 'Включён' : 'Включить'}</button></div>
       <div class="setting"><span>Показать обучение заново</span><button class="btn ghost" type="button" id="set-tut">Показать</button></div>
       <div class="setting"><span>Тест: открыть всех жителей</span><button class="btn ghost" type="button" id="set-all">Открыть</button></div>
       <div class="setting"><span>Игрок: ${PLAYER ? esc(PLAYER.avatar + ' ' + PLAYER.name) : '—'}</span><button class="btn ghost" type="button" id="set-player">Сменить</button></div>
@@ -2164,9 +2225,10 @@ function openPanel(kind) {
   const go = $('code-go');
   if (go) {
     const tryCode = () => {
-      const v = normCode($('code-in').value);
-      const id = Object.keys(SPECIES).find((k) => normCode(SPECIES[k].code) === v);
-      if (v === normCode('РАЗРАБ')) { Object.keys(SPECIES).forEach(unlock); closePanel(); goTo(S.loc); toast('Режим разработчика: все жители открыты'); return; }
+      const found = window.ShaitanCode ? ShaitanCode.find($('code-in').value) : null;   // only hashes of the words are stored
+      const id = found && found !== '*' && SPECIES[found] ? found : null;
+      if (id) ShaitanCode.open(id);
+      if (found === '*') { Object.keys(SPECIES).forEach(unlock); closePanel(); goTo(S.loc); toast('Режим разработчика: все жители открыты'); return; }
       if (!id) { sfx('no'); toast('Такого кода нет. Проверь ответ кроссворда'); return; }
       if (!unlock(id)) { toast(`${SPECIES[id].name} уже живёт в заповеднике`); return; }
       const home = SPECIES[id].home;
@@ -2181,12 +2243,27 @@ function openPanel(kind) {
   const ss = $('set-sound'); if (ss) ss.addEventListener('click', () => { S.sound = !S.sound; save(); openPanel('settings'); sfx('tap'); });
   const st = $('set-tut'); if (st) st.addEventListener('click', () => { closePanel(); setTut(0); });
   const sa = $('set-all'); if (sa) sa.addEventListener('click', () => { Object.keys(SPECIES).forEach(unlock); closePanel(); goTo(S.loc); toast('Все жители открыты'); });
+  const sl = $('set-land'); if (sl) sl.addEventListener('click', () => { sfx('tap'); toggleLandscape().then(() => openPanel('settings')); });
   const sp = $('set-player'); if (sp) sp.addEventListener('click', () => { if (window.Profile) { Profile.signOut(); location.reload(); } });
   const sr = $('set-reset');
   if (sr) sr.addEventListener('click', () => {
     if (sr.dataset.armed) { S = fresh(); save(); closePanel(); renderHUD(); renderCoach(); goTo(S.loc); toast('Заповедник начат заново'); }
     else { sr.dataset.armed = '1'; sr.textContent = 'Точно сбросить?'; }
   });
+}
+function isLandscapeMode() { return !!document.fullscreenElement && innerWidth > innerHeight; }
+async function toggleLandscape() {
+  if (document.fullscreenElement) {
+    try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) { /* ignore */ }
+    try { await document.exitFullscreen(); } catch (e) { /* ignore */ }
+    return;
+  }
+  let locked = false;
+  try {
+    if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+    if (screen.orientation && screen.orientation.lock) { await screen.orientation.lock('landscape'); locked = true; }
+  } catch (e) { /* iPhone and some browsers can't lock the screen */ }
+  if (!locked && innerWidth < innerHeight) toast('Поверни телефон боком — игра сама перестроится под горизонтальный экран', 4200);
 }
 function closePanel() { panelBg.hidden = true; document.querySelectorAll('.dock button').forEach((b) => b.classList.remove('on')); }
 panelBg.addEventListener('click', (e) => { if (e.target === panelBg) closePanel(); });
