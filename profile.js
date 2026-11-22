@@ -128,3 +128,17 @@
     open(id) { const d = read(); d[id] = new Date().toISOString(); try { localStorage.setItem(storeKey(), JSON.stringify(d)); } catch (e) { /* ignore */ } }
   };
 })();
+
+/* no zoom on double tap (it got in the way of the game); pinch-zoom of the 3D scene still works through the game itself */
+(function () {
+  let last = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - last < 350 && !(e.target.closest && e.target.closest('input, textarea'))) e.preventDefault();
+    last = now;
+  }, { passive: false });
+  document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+  const st = document.createElement('style'); st.textContent = 'html,body,button{touch-action:manipulation}';
+  (document.head || document.documentElement).appendChild(st);
+})();
