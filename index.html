@@ -83,6 +83,18 @@ button { font-family: var(--body); }
 .player .av { font-size: 20px; }
 #namer .row2 { display: flex; gap: 10px; }
 #namer .row2 .btn { flex: 1; }
+#gate { position: fixed; inset: 0; z-index: 40; display: none; place-items: center; overflow-y: auto;
+  padding: calc(env(safe-area-inset-top) + 16px) max(18px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 16px) max(18px, env(safe-area-inset-left));
+  background: radial-gradient(120% 80% at 50% 0%, #2f4a39 0%, #16211b 60%, #0f1713 100%); }
+#gate .box { width: min(420px, 100%); display: flex; flex-direction: column; gap: 14px; }
+#gate .icon { font-size: 54px; line-height: 1; filter: grayscale(1) brightness(.6); }
+#gate h2 { font-family: var(--display); font-size: clamp(22px, 7vw, 28px); margin: 0; line-height: 1.12; }
+#gate p { margin: 0; color: var(--dusk); line-height: 1.45; }
+#gate input { font: 800 22px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--feather); background: var(--night); border: 1px solid var(--bark); border-radius: 16px; padding: 15px 16px; width: 100%; text-align: center; }
+#gate input:focus { outline: 2px solid var(--amber); border-color: transparent; }
+#gate .err { color: #ffb3a1; font-weight: 800; min-height: 1.4em; }
+#gate.shake .box { animation: shake .4s; }
+@keyframes shake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
 #sheet .body { overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding: 4px max(18px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); display: flex; flex-direction: column; gap: 14px; line-height: 1.5; }
 .badge { align-self: flex-start; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #ffb3a1; border: 1px solid #6b3a30; border-radius: 999px; padding: 4px 10px; }
 .body p { margin: 0; }
@@ -107,6 +119,18 @@ button { font-family: var(--body); }
 <div class="top">
   <div class="chip" id="hint" hidden>Наведи камеру на карточку с кодом</div>
 </div>
+
+<section id="gate" aria-labelledby="gate-title" role="dialog" aria-modal="true">
+  <form class="box" id="gate-form" autocomplete="off">
+    <div class="icon" id="gate-icon" aria-hidden="true">🐾</div>
+    <div class="eyebrow" id="gate-num">Житель Шайтан-Тау</div>
+    <h2 id="gate-title">Кто-то прячется на этой карточке</h2>
+    <p>Введи кодовое слово из кроссворда в книжке, и житель появится прямо на карточке.</p>
+    <input id="gate-input" maxlength="20" placeholder="Кодовое слово" enterkeyhint="go" aria-label="Кодовое слово" autocapitalize="characters" spellcheck="false">
+    <div class="err" id="gate-err" role="alert"></div>
+    <button class="btn" type="submit">Открыть</button>
+  </form>
+</section>
 
 <section id="namer" aria-labelledby="namer-title">
   <div class="eyebrow">Новый житель · Шайтан-Тау</div>
@@ -372,7 +396,7 @@ function owlArrived() {
 
 /* tap anywhere on the camera view: the owl answers */
 window.addEventListener('pointerup', (e) => {
-  if (e.target.closest && e.target.closest('#sheet, #namer, .top, .player, .pf-wrap')) return;
+  if (e.target.closest && e.target.closest('#sheet, #namer, #gate, .top, .player, .pf-wrap')) return;
   if (seen && !brain.current) brain.perform(A.tap[Math.floor(Math.random() * A.tap.length)]);
 });
 
@@ -398,14 +422,32 @@ function showPlayer(p) {
   owned = readCollection()[AID] || null; applyName(); fitSheet();
 }
 $('player').addEventListener('click', () => { Profile.signOut(); location.reload(); });
+function codeGate(then) {
+  // already opened by this player (or already in the collection): no question
+  if (ShaitanCode.isOpen(AID) || owned) { ShaitanCode.open(AID); then(); return; }
+  const g = $('gate'), inp = $('gate-input'), err = $('gate-err');
+  $('gate-icon').textContent = '🐾'; $('gate-num').textContent = 'Житель №' + A.number + ' · Шайтан-Тау';
+  g.style.display = 'grid'; setTimeout(() => inp.focus(), 80);
+  $('gate-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (ShaitanCode.check(AID, inp.value)) {
+      ShaitanCode.open(AID); g.style.display = 'none'; inp.blur();
+      const t = $('hint'); t.textContent = 'Верно! ' + A.species + ' уже здесь — наведи камеру на карточку'; t.hidden = false; t.classList.remove('fade');
+      then();
+    } else {
+      err.textContent = inp.value.trim() ? 'Не то слово. Проверь ответ в кроссворде' : 'Сначала впиши кодовое слово';
+      g.classList.remove('shake'); void g.offsetWidth; g.classList.add('shake'); inp.select();
+    }
+  });
+}
 window.addEventListener('load', () => Profile.ensure((p) => {
   showPlayer(p);
   const t = $('hint'); t.textContent = 'Привет, ' + p.name + '! Наведи камеру на карточку с кодом'; t.hidden = false;
-  targetReady.then(({ target, place }) => {
+  codeGate(() => targetReady.then(({ target, place }) => {
     TARGET = target; TARGET_NAME = target.name;
     if (place) PLACE = place;
     window.XRExtras ? startXR() : window.addEventListener('xrextrasloaded', startXR, { once: true });
-  }).catch((e) => console.error('target', e));
+  }).catch((e) => console.error('target', e)));
 }));
 
 /* ================= naming ================= */
