@@ -101,3 +101,30 @@
   }
   function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 })();
+
+/* Code words from the crossword. Only hashes are stored in the pages, so the answers can't be read from the source.
+   Opened codes are remembered per player: the same animal never asks twice. */
+(function () {
+  const norm = (s) => String(s).toUpperCase().replace(/Ё/g, 'Е').replace(/[^А-ЯA-Z]/g, '');
+  const cyrb53 = (str, seed = 0) => {
+    let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+    for (let i = 0, ch; i < str.length; i++) { ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507); h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507); h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+  };
+  const hash = (code) => cyrb53('shaitantau:' + norm(code)).toString(36);
+  const KEY = 'shaitantau.codes.v1';
+  const storeKey = () => (window.Profile ? Profile.key(KEY) : KEY);
+  const read = () => { try { return JSON.parse(localStorage.getItem(storeKey())) || {}; } catch (e) { return {}; } };
+  window.ShaitanCode = {
+    norm, hash,
+    // id -> hash of its code word (same words as in the crossword book)
+    HASHES: { filin: 'iqgdbwayng', baibak: 'bm2he994vk', medved: '1y2kfzh8e4a', rys: '1ee0pq853vj', sapsan: 'gtz7hx1dui' },
+    DEV: '1fwr7mkm4vw',
+    check(id, word) { return hash(word) === this.HASHES[id]; },
+    find(word) { const h = hash(word); return Object.keys(this.HASHES).find((k) => this.HASHES[k] === h) || (h === this.DEV ? '*' : null); },
+    isOpen(id) { return !!read()[id]; },
+    open(id) { const d = read(); d[id] = new Date().toISOString(); try { localStorage.setItem(storeKey(), JSON.stringify(d)); } catch (e) { /* ignore */ } }
+  };
+})();
