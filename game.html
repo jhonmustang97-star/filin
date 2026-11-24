@@ -154,12 +154,11 @@ body.fishing-on #fp-ui .fp-joy, body.fishing-on #fp-ui .fp-act { display: none; 
 .dock button.walk .ico { color: var(--amber-deep); }
 .act { width: 70px; padding: 7px 4px 6px; border-radius: 16px; font-size: 11.5px; gap: 2px; }
 .act .ico { width: 24px; height: 24px; }
-.act .hint { display: none; }
 .actions.off { display: none; }
 .card { position: relative; }
 .card.mini { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; width: auto; max-width: min(540px, 100%); }
 .card.mini > .ico { width: 18px; height: 18px; color: var(--amber-deep); }
-.card.mini b { font-family: var(--display); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 34vw; }
+.card.mini b { min-width: 60px; font-family: var(--display); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 34vw; }
 .minis { display: flex; gap: 8px; align-items: center; }
 .mn { display: flex; align-items: center; gap: 3px; }
 .mn .ico { width: 15px; height: 15px; }
@@ -313,9 +312,38 @@ body.fp .res { justify-content: flex-end; }
 body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overlay, body.photo .coach { opacity: 0; pointer-events: none; transition: opacity .3s; }
 
 /* ---------- phones ---------- */
+/* labels: what every icon does, what the animal wants, which button to press */
+.card.mini { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; width: min(460px, 100%); padding: 8px 10px 9px 12px; }
+.mini-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mini-top > .ico { width: 18px; height: 18px; color: var(--amber-deep); flex: none; }
+.mini-top .more { margin-left: auto; }
+.want { font-weight: 900; font-size: 12px; color: var(--bad); line-height: 1.15; min-width: 0; }
+.want em { display: block; font-style: normal; font-size: 11px; color: var(--ink-soft); }
+.want.ok { color: var(--good); }
+.card.mini .minis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.mn { display: block; min-width: 0; }
+.mn > span, .fa-need > span { display: flex; align-items: center; gap: 2px; font-size: 10px; font-weight: 800; color: var(--ink-soft); white-space: nowrap; }
+.mn > span .ico { width: 13px; height: 13px; flex: none; }
+.mn i { width: 100%; margin-top: 2px; }
+.mn.low > span { color: var(--bad); }
+.act .hint { font-size: 9.5px; white-space: nowrap; }
+.act.need-it { box-shadow: 0 0 0 2px var(--bad), var(--shadow); }
+.act.need-it::after, .fa-acts button.need::after { content: "!"; top: -6px; right: -4px; width: 20px; height: 20px; border-radius: 50%; background: var(--bad); color: #fff; font-size: 13px; font-weight: 900; display: grid; place-items: center; animation: bump 1s ease infinite; }
+.pill > span { text-align: center; line-height: 1.05; }
+.pill > span::after { content: attr(data-l); display: block; font-size: 8.5px; font-weight: 800; color: var(--ink-soft); }
+.icon-btn small, .round small { display: block; font-size: 9px; font-weight: 800; line-height: 1; }
+.icon-btn, .round { align-content: center; gap: 1px; }
+.hud-top .icon-btn { width: 42px; height: 42px; flex: none; }
+.icon-btn .ico, .round .ico { width: 20px; height: 20px; }
+.fa-head { flex-wrap: wrap; gap: 2px 8px; justify-content: flex-start; }
+.fa-needs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; }
+.fa-need { display: block; }
+.fa-need i { width: 100%; margin-top: 1px; }
+.fa-need > span .ico { width: 12px; height: 12px; }
 @media (max-width: 760px) {
   .hud-top { flex-direction: column; align-items: stretch; gap: 8px; }
-  .res { justify-content: flex-start; }
+  .res { justify-content: flex-start; gap: 4px; flex-wrap: nowrap; }
+  .pill { gap: 4px !important; }
   .profile { padding: 6px 12px 6px 6px; }
   .lvl-ring { width: 42px; height: 42px; }
   .pill { font-size: 13px; padding: 4px 4px 4px 7px; }
@@ -323,7 +351,7 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
   .pill .plus { width: 20px; height: 20px; font-size: 15px; }
   .icon-btn { width: 36px; height: 36px; border-radius: 12px; }
   .dock { top: calc(env(safe-area-inset-top) + 196px); transform: none; padding: 5px; gap: 2px; }
-  .dock button { width: 44px; height: 42px; font-size: 0; padding: 0; gap: 0; justify-content: center; }
+  .dock button { width: 60px; font-size: 9.5px; padding: 5px 1px 4px; gap: 1px; }
   .dock .badge { top: -2px; right: -2px; }
   #photo-card { top: calc(env(safe-area-inset-top) + 124px); }
   .dock .ico { width: 21px; height: 21px; }
@@ -361,7 +389,7 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
   .pill .ico, .pill .plus { width: 20px; height: 20px; }
   .icon-btn { width: 36px; height: 36px; border-radius: 12px; }
   .dock { top: calc(env(safe-area-inset-top) + 58px); transform: none; padding: 4px; gap: 2px; border-radius: 18px; max-height: calc(100vh - 128px); overflow-y: auto; }
-  .dock button { width: 40px; height: 36px; padding: 0; font-size: 0; gap: 0; justify-content: center; border-radius: 12px; }
+  .dock button { width: 100px; height: 32px; padding: 0 6px; font-size: 11px; gap: 6px; flex-direction: row; justify-content: flex-start; border-radius: 12px; }
   .dock .ico { width: 22px; height: 22px; }
   .dock .badge { top: -2px; right: -2px; }
   .hud-bottom { grid-template-columns: auto minmax(0, 1fr) auto; bottom: calc(env(safe-area-inset-bottom) + 6px); gap: 8px; align-items: end; }
@@ -381,10 +409,9 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
   .needs { gap: 6px; }
   .need .lbl { font-size: 10px; }
   .status { font-size: 11px; }
-  .actions { display: grid; grid-template-columns: repeat(2, 66px); gap: 5px; flex: none; width: auto; }
+  .actions { display: grid; grid-template-columns: repeat(2, 80px); gap: 5px; flex: none; width: auto; }
   .act { width: auto; padding: 5px 2px 4px; font-size: 10.5px; border-radius: 14px; gap: 1px; }
   .act .ico { width: 20px; height: 20px; }
-  .act .hint { display: none; }
   .foods { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 6px); top: auto; max-height: calc(100vh - 70px); overflow-y: auto; width: min(560px, calc(100vw - 120px)); }
   .food-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
   .panel { max-height: calc(100vh - 24px); padding: 14px 16px; border-radius: 20px; }
@@ -400,7 +427,8 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
   #fp-ui .fp-compass { top: calc(env(safe-area-inset-top) + 8px); width: min(300px, 36vw); height: 30px; }
   #fp-ui .fp-bag { top: calc(env(safe-area-inset-top) + 52px); }
   #fp-ui .fp-animal { width: min(300px, 44vw); padding: 8px; gap: 6px; }
-  .fa-acts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .fa-acts, .fa-needs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .pill > span::after { font-size: 8px; }
   .fa-foods { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   #photo-card { top: calc(env(safe-area-inset-top) + 50px); }
   #fp-ui .fp-hint { top: calc(env(safe-area-inset-top) + 46px); font-size: 12px; width: min(460px, 60vw); }
@@ -477,10 +505,10 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
   <div class="clock glass" id="clock" title="Время суток в заповеднике"></div>
   </div>
   <div class="res">
-    <button class="pill glass" type="button" id="p-cones" title="Шишки: на них покупается корм"><svg class="ico"><use href="#i-cone"/></svg><span>0</span><b class="plus">+</b></button>
-    <button class="pill glass" type="button" id="p-leaves" title="Листики благодарности: за них — лакомства"><svg class="ico"><use href="#i-leaf"/></svg><span>0</span><b class="plus">+</b></button>
-    <button class="pill glass" type="button" id="p-gems" title="Кристаллы: за новые уровни"><svg class="ico"><use href="#i-gem"/></svg><span>0</span><b class="plus">+</b></button>
-    <button class="icon-btn glass" type="button" id="settings-btn" aria-label="Настройки"><svg class="ico"><use href="#i-gear"/></svg></button>
+    <button class="pill glass" type="button" id="p-cones" title="Шишки: на них покупается корм"><svg class="ico"><use href="#i-cone"/></svg><span data-l="шишки">0</span><b class="plus">+</b></button>
+    <button class="pill glass" type="button" id="p-leaves" title="Листики благодарности: за них — лакомства"><svg class="ico"><use href="#i-leaf"/></svg><span data-l="листики">0</span><b class="plus">+</b></button>
+    <button class="pill glass" type="button" id="p-gems" title="Кристаллы: за новые уровни"><svg class="ico"><use href="#i-gem"/></svg><span data-l="кристаллы">0</span><b class="plus">+</b></button>
+    <button class="icon-btn glass" type="button" id="settings-btn" aria-label="Настройки"><svg class="ico"><use href="#i-gear"/></svg><small>Меню</small></button>
   </div>
 </header>
 
@@ -506,13 +534,13 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
     <div class="foods glass" id="foods" hidden></div>
     <div class="card glass empty" id="card">Нажми на животное, чтобы позаботиться о нём</div>
     <div class="actions">
-      <button class="act glass" type="button" data-act="clean"><svg class="ico"><use href="#i-brush"/></svg>Почистить<span class="hint">чистота</span></button>
-      <button class="act glass" type="button" data-act="feed"><svg class="ico"><use href="#i-bowl"/></svg>Накормить<span class="hint">выбрать еду</span></button>
-      <button class="act glass" type="button" data-act="water"><svg class="ico"><use href="#i-drop"/></svg>Напоить<span class="hint">к водопою</span></button>
-      <button class="act glass" type="button" data-act="play"><svg class="ico"><use href="#i-ball"/></svg>Поиграть<span class="hint">настроение</span></button>
+      <button class="act glass" type="button" data-act="clean"><svg class="ico"><use href="#i-brush"/></svg>Почистить<span class="hint">+ чистота</span></button>
+      <button class="act glass" type="button" data-act="feed"><svg class="ico"><use href="#i-bowl"/></svg>Накормить<span class="hint">+ сытость</span></button>
+      <button class="act glass" type="button" data-act="water"><svg class="ico"><use href="#i-drop"/></svg>Напоить<span class="hint">+ вода</span></button>
+      <button class="act glass" type="button" data-act="play"><svg class="ico"><use href="#i-ball"/></svg>Поиграть<span class="hint">+ настроение</span></button>
     </div>
   </div>
-  <button class="round glass" type="button" id="photo-btn" aria-label="Сделать фото"><svg class="ico"><use href="#i-cam"/></svg></button>
+  <button class="round glass" type="button" id="photo-btn" aria-label="Сделать фото"><svg class="ico"><use href="#i-cam"/></svg><small>Фото</small></button>
 </footer>
 
 <div class="fishing glass" id="fishing" hidden></div>
@@ -542,7 +570,8 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
 
 <div id="loading"><div class="box"><h1>Мой заповедник</h1><div class="prog"><i id="load-bar"></i></div><p id="load-text">Сажаем деревья…</p></div></div>
 
-<script src="profile.js"></script>
+<script>window.PAGE_VER = '2026-11-23.1';</script>
+<script src="profile.js?v=2026-11-23.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
@@ -1557,6 +1586,12 @@ function heartsHTML(id) {
   return s;
 }
 let editingName = false;
+const WANTS = { food: ['хочет есть', 'Накормить'], water: ['хочет пить', 'Напоить'], mood: ['хочет играть', 'Поиграть'], clean: ['хочет помыться', 'Почистить'] };
+// what the animal wants right now and which button helps
+function wantHTML(id) {
+  const [k, v] = lowest(id);
+  return v < 45 ? `<span class="want">${WANTS[k][0]}<em>нажми «${WANTS[k][1]}»</em></span>` : '<span class="want ok">всем доволен</span>';
+}
 function renderCard() {
   const c = $('card');
   if (!selected) { c.hidden = true; return; }     // nothing selected: the island stays clear
@@ -1566,7 +1601,7 @@ function renderCard() {
   if (!cardOpen) {                                  // short card: name and four small bars, details on tap
     const st = statusOf(a);
     c.className = 'card glass mini';
-    c.innerHTML = `${st ? svg(st[0]) : ''}<b>${esc(nameOf(a.id))}</b><span class="minis">${NEED_LIST.map(([k, l, ic]) => `<span class="mn${n[k] < 45 ? ' low' : ''}" title="${l}">${svg(ic)}<i><u style="width:${Math.round(n[k])}%;background:${needColor(n[k])}"></u></i></span>`).join('')}</span><button class="more" type="button" aria-label="Подробнее">${svg('i-info')}</button>`;
+    c.innerHTML = `<div class="mini-top">${st ? svg(st[0]) : ''}<b>${esc(nameOf(a.id))}</b>${wantHTML(a.id)}<button class="more" type="button" aria-label="Подробнее">${svg('i-info')}</button></div><span class="minis">${NEED_LIST.map(([k, l, ic]) => `<span class="mn${n[k] < 45 ? ' low' : ''}"><span>${svg(ic)}${l}</span><i><u style="width:${Math.round(n[k])}%;background:${needColor(n[k])}"></u></i></span>`).join('')}</span>`;
     c.querySelector('.more').addEventListener('click', () => { cardOpen = true; renderCard(); });
     return;
   }
@@ -2320,7 +2355,7 @@ function renderFpAnimal() {
   if (!a || fp.trans) { el.hidden = true; return; }
   el.hidden = false;
   const n = S.needs[a.id];
-  const head = `<div class="fa-head"><b>${esc(nameOf(a.id))}</b><span class="fa-needs">${NEED_LIST.map(([k, l, ic]) => `<span class="fa-need" title="${l}">${svg(ic)}<i><u style="width:${Math.round(n[k])}%;background:${needColor(n[k])}"></u></i></span>`).join('')}</span></div>`;
+  const head = `<div class="fa-head"><b>${esc(nameOf(a.id))}</b>${wantHTML(a.id)}</div><span class="fa-needs">${NEED_LIST.map(([k, l, ic]) => `<span class="fa-need"><span>${svg(ic)}${l}</span><i><u style="width:${Math.round(n[k])}%;background:${needColor(n[k])}"></u></i></span>`).join('')}</span>`;
   if (fp.foodOpen) {
     el.innerHTML = head + `<div class="fa-foods">${Object.entries(FOODS).map(([k, fd]) => `<button type="button" data-food="${k}" class="${fd.gather && !(S.pantry[k] > 0) ? 'empty' : ''}">${svg(fd.icon)}<span>${fd.name}</span><small>${fd.gather ? (S.pantry[k] || 0) + ' шт' : fd.cost + ' шиш.'}</small></button>`).join('')}<button type="button" data-food="back" class="back">←<span>Назад</span></button></div>`;
     el.querySelectorAll('[data-food]').forEach((b) => b.addEventListener('click', () => {
@@ -2329,7 +2364,7 @@ function renderFpAnimal() {
     }));
     return;
   }
-  const acts = [['feed', 'i-bowl', 'Покормить'], ['water', 'i-drop', 'Напоить'], ['play', 'i-ball', 'Поиграть'], ['clean', 'i-brush', 'Почистить']];
+  const acts = [['feed', 'i-bowl', 'Накормить'], ['water', 'i-drop', 'Напоить'], ['play', 'i-ball', 'Поиграть'], ['clean', 'i-brush', 'Почистить']];
   const busy = a.caring || a.state === 'fly';
   el.innerHTML = head + `<div class="fa-acts">${acts.map(([k, ic, l]) => `<button type="button" data-fa="${k}" class="${n[ACT_NEED[k]] < 45 ? 'need' : ''}" ${busy ? 'disabled' : ''}>${svg(ic)}<span>${l}</span></button>`).join('')}</div>`;
   el.querySelectorAll('[data-fa]').forEach((b) => b.addEventListener('click', () => {
@@ -2373,7 +2408,7 @@ function renderFpLabel(f) {
 /* ======================================================================= tutorial */
 const TUT = [
   'Привет! Это твой заповедник. Нажми на животное, чтобы познакомиться.',
-  'Шкалы показывают, чего ему не хватает. Красная точка подсказывает нужное действие.',
+  'Шкалы показывают, чего животное хочет: есть, пить, играть или помыться. Красный значок «!» стоит на кнопке с нужным действием.',
   'Каждое животное ест своё. Нажми «Накормить» и подумай, что оно ест в природе.',
   'Отлично! Чем лучше заботишься, тем крепче дружба. За сердечки открываются факты в Дневнике. Новых жителей открывай кодами из книжки.'
 ];
