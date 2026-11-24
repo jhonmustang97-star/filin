@@ -80,6 +80,8 @@ button { font-family: var(--body); }
 @keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(240, 164, 58, .35); } }
 .player { position: fixed; z-index: 16; left: max(12px, env(safe-area-inset-left)); top: calc(env(safe-area-inset-top) + 12px); display: flex; align-items: center; gap: 8px; }
 .player[hidden] { display: none; }
+.replace { position: fixed; z-index: 16; right: max(12px, env(safe-area-inset-right)); top: calc(env(safe-area-inset-top) + 12px); font-family: var(--body); cursor: pointer; }
+.chev-l { display: flex; align-items: center; gap: 8px; flex: none; font-size: 12px; font-weight: 800; color: var(--dusk); }
 .player .av { font-size: 20px; }
 #namer .row2 { display: flex; gap: 10px; }
 #namer .row2 .btn { flex: 1; }
@@ -116,6 +118,7 @@ button { font-family: var(--body); }
 <canvas id="camerafeed"></canvas>
 
 <button class="chip player" id="player" type="button" hidden aria-label="Сменить игрока"><span class="av" id="player-av"></span><span id="player-name"></span></button>
+<button class="chip replace" id="replace" type="button" hidden>⟲ Поставить заново</button>
 <div class="top">
   <div class="chip" id="hint" hidden>Наведи камеру на карточку с кодом</div>
 </div>
@@ -148,9 +151,9 @@ button { font-family: var(--body); }
         <h2 id="sheet-title">Филин</h2>
         <div class="sub"><span id="sheet-latin">Bubo bubo</span> · <span class="doing" id="doing">сидит на ветке</span></div>
       </div>
-      <div class="chev" aria-hidden="true">
+      <div class="chev-l">О животном<div class="chev" aria-hidden="true">
         <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 10l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
+      </div></div>
     </div>
   </div>
   <div class="acts" id="acts">
@@ -166,7 +169,7 @@ button { font-family: var(--body); }
     <div class="sheet-actions">
       <a class="btn ghost" href="collection.html">Вся коллекция</a>
     </div>
-    <p class="credit">This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
+    <p class="credit">Версия 2026-11-23.1. This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
   </div>
 </section>
 
@@ -174,8 +177,9 @@ button { font-family: var(--body); }
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1.0.0/dist/xrextras.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1.0.0/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
-<script src="profile.js"></script>
-<script src="animals.js"></script>
+<script>window.PAGE_VER = '2026-11-23.1';</script>
+<script src="profile.js?v=2026-11-23.1"></script>
+<script src="animals.js?v=2026-11-23.1"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 
@@ -216,7 +220,7 @@ function applyName() {
 /* ================= image target script for this resident ================= */
 const targetReady = new Promise((resolve, reject) => {
   const s = document.createElement('script');
-  s.src = A.target;
+  s.src = A.target + '?v=' + window.PAGE_VER;
   s.onload = () => resolve({ target: window.AR_TARGET || window.OWL_TARGET, place: window.AR_PLACE || window.OWL_PLACE });
   s.onerror = reject;
   document.head.appendChild(s);
@@ -224,7 +228,7 @@ const targetReady = new Promise((resolve, reject) => {
 
 /* ================= model (base64 text -> GLB) ================= */
 async function loadOwlBuffer() {
-  const res = await fetch(A.model);
+  const res = await fetch(A.model + '?v=' + window.PAGE_VER);
   if (!res.ok) throw new Error('model ' + res.status);
   const bin = atob((await res.text()).replace(/\s+/g, ''));
   const bytes = new Uint8Array(bin.length);
@@ -301,7 +305,7 @@ function owlModule() {
       const sun = new THREE.DirectionalLight(0xffffff, 0.9);
       sun.position.set(0.5, -0.7, 2.2);          // card space: +z points up out of the card
       sun.castShadow = true;
-      sun.shadow.mapSize.set(1024, 1024);
+      sun.shadow.mapSize.setScalar(/Android/i.test(navigator.userAgent) ? 512 : 1024);   // lighter shadows leave Android more time for tracking
       Object.assign(sun.shadow.camera, { left: -2, right: 2, top: 2, bottom: -2, near: 0.1, far: 8 });
       sun.shadow.bias = -0.002;
       anchor.add(sun); anchor.add(sun.target);
@@ -340,7 +344,7 @@ function owlModule() {
       const now = performance.now();
       const dt = lastFrame ? Math.min((now - lastFrame) / 1000, 0.1) : 0;
       lastFrame = now;
-      brain.update(dt, seen);
+      brain.update(dt, seen); glide(dt);
     },
     listeners: [
       { event: 'reality.imagefound', process: onImage },
@@ -350,40 +354,57 @@ function owlModule() {
   };
 }
 
-/* Placement: settle for a moment, then freeze in the world.
-   After the freeze only SLAM moves the owl (that is what keeps it fixed in the room);
-   the card's own small detection jitter is ignored. If the card is really moved, the owl follows. */
-const SETTLE_MS = 1500;          // average the card pose for this long after first sight
-const MOVE_FAR = 0.35;           // card moved more than this (in card heights) ...
-const MOVE_HOLD_MS = 700;        // ... for this long -> re-place the owl
-const tmpPos = new THREE.Vector3(), tmpQuat = new THREE.Quaternion();
-let firstSeenAt = 0, frozen = false, farSince = 0;
+/* Placement: measure the card for about a second, take the median of the measurements and lock the animal in the world.
+   After the lock one card measurement never moves the animal (single bad measurements made it jump on Android).
+   Only when the card is seen steadily in another place for a while does the animal glide there slowly, never snap. */
+const SETTLE_MS = 1200, MIN_SAMPLES = 10;
+const WINDOW_MS = 1400;              // how long the card must be seen steadily before a correction
+const STEADY = 0.04, DRIFT = 0.15;   // in card heights: allowed spread of the measurements / offset worth correcting
+const GLIDE = 0.35;                  // correction speed, card heights per second
+let firstSeenAt = 0, frozen = false, samples = [], glideTo = null;
+const median = (l) => { const c = l.slice().sort((x, y) => x - y), m = c.length >> 1; return c.length % 2 ? c[m] : (c[m - 1] + c[m]) / 2; };
+function poseOf(list) {
+  const pos = new THREE.Vector3(median(list.map((k) => k.p.x)), median(list.map((k) => k.p.y)), median(list.map((k) => k.p.z)));
+  // of all measured rotations take the one closest to the others: a single flipped pose can't win
+  let best = list[0].q, bd = Infinity;
+  for (const k of list) { let d = 0; for (const o of list) d += k.q.angleTo(o.q); if (d < bd) { bd = d; best = k.q; } }
+  return { pos, quat: best.clone(), scale: median(list.map((k) => k.s)) };
+}
 function onImage({ detail }) {
   if (!anchor || detail.name !== TARGET_NAME) return;
-  tmpPos.set(detail.position.x, detail.position.y, detail.position.z);
-  tmpQuat.set(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w);
   const now = performance.now();
+  samples.push({ t: now, s: detail.scale, p: new THREE.Vector3(detail.position.x, detail.position.y, detail.position.z),
+    q: new THREE.Quaternion(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w) });
+  while (samples.length > 100 || now - samples[0].t > WINDOW_MS) samples.shift();
   if (!seen) {
-    anchor.position.copy(tmpPos); anchor.quaternion.copy(tmpQuat); anchor.scale.setScalar(detail.scale);
-    anchor.visible = true; seen = true; firstSeenAt = now; frozen = false;
-    owlArrived();
+    const k = samples[samples.length - 1];
+    anchor.position.copy(k.p); anchor.quaternion.copy(k.q); anchor.scale.setScalar(k.s);
+    anchor.visible = true; seen = true; firstSeenAt = now; frozen = false; glideTo = null;
+    owlArrived(); $('replace').hidden = false;
   } else if (!frozen) {
-    // gentle running average while settling
-    anchor.position.lerp(tmpPos, 0.15); anchor.quaternion.slerp(tmpQuat, 0.15);
-    anchor.scale.setScalar(THREE.MathUtils.lerp(anchor.scale.x, detail.scale, 0.15));
-    if (now - firstSeenAt > SETTLE_MS) frozen = true;
-  } else {
-    // frozen: react only to a real move of the card, held for a while
-    const far = anchor.position.distanceTo(tmpPos) > MOVE_FAR * anchor.scale.x;
-    if (far) {
-      if (!farSince) farSince = now;
-      if (now - farSince > MOVE_HOLD_MS) { frozen = false; firstSeenAt = now; farSince = 0; }
-    } else {
-      farSince = 0;
-    }
+    const m = poseOf(samples);
+    anchor.position.lerp(m.pos, 0.2); anchor.quaternion.slerp(m.quat, 0.2);
+    anchor.scale.setScalar(THREE.MathUtils.lerp(anchor.scale.x, m.scale, 0.2));
+    if (now - firstSeenAt > SETTLE_MS && samples.length >= MIN_SAMPLES) frozen = true;
+  } else if (samples.length >= MIN_SAMPLES && now - samples[0].t > WINDOW_MS * 0.8) {
+    const m = poseOf(samples), h = anchor.scale.x;
+    const steady = median(samples.map((k) => k.p.distanceTo(m.pos))) < STEADY * h;
+    if (steady && anchor.position.distanceTo(m.pos) > DRIFT * h) glideTo = m;
   }
   $('hint').classList.add('fade');
 }
+function glide(dt) {
+  if (!glideTo || !frozen) return;
+  const d = anchor.position.distanceTo(glideTo.pos), step = GLIDE * anchor.scale.x * dt;
+  if (d <= step) { anchor.position.copy(glideTo.pos); glideTo = null; return; }
+  anchor.quaternion.slerp(glideTo.quat, step / d); anchor.position.lerp(glideTo.pos, step / d);
+}
+// the button at the top right: measure the card again from scratch
+function replaceAnimal() {
+  seen = false; frozen = false; samples = []; glideTo = null; if (anchor) anchor.visible = false;
+  const t = $('hint'); t.textContent = 'Наведи камеру на карточку и подержи секунду'; t.hidden = false; t.classList.remove('fade');
+}
+$('replace').addEventListener('click', replaceAnimal);
 function onImageLost({ detail }) {
   // world tracking keeps the owl where the card was: nothing to hide
   if (detail && detail.name !== TARGET_NAME) return;
@@ -396,7 +417,7 @@ function owlArrived() {
 
 /* tap anywhere on the camera view: the owl answers */
 window.addEventListener('pointerup', (e) => {
-  if (e.target.closest && e.target.closest('#sheet, #namer, #gate, .top, .player, .pf-wrap')) return;
+  if (e.target.closest && e.target.closest('#sheet, #namer, #gate, .top, .replace, .player, .pf-wrap')) return;
   if (seen && !brain.current) brain.perform(A.tap[Math.floor(Math.random() * A.tap.length)]);
 });
 
