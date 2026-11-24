@@ -185,7 +185,7 @@ button { font-family: var(--body); }
     <div class="sheet-actions">
       <a class="btn ghost" href="collection.html">Вся коллекция</a>
     </div>
-    <p class="credit">Версия 2026-11-24.4. This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
+    <p class="credit">Версия 2026-11-24.5. This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
   </div>
 </section>
 
@@ -193,9 +193,9 @@ button { font-family: var(--body); }
 <script>window.THREE || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"><\/script>')</script>
 <script src="GLTFLoader.js"></script>
 <script>THREE.GLTFLoader || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"><\/script>')</script>
-<script>window.PAGE_VER = '2026-11-24.4';</script>
-<script src="profile.js?v=2026-11-24.4"></script>
-<script src="animals.js?v=2026-11-24.4"></script>
+<script>window.PAGE_VER = '2026-11-24.5';</script>
+<script src="profile.js?v=2026-11-24.5"></script>
+<script src="animals.js?v=2026-11-24.5"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 
@@ -386,6 +386,9 @@ function owlModule() {
    Between sightings the arrow is moved on by the phone's own motion, multiplied by `trust`: how far the phone really moves
    compared with what it claims (1 = honest, 3 = it moved three times further). trust is measured all the time from the card. */
 const UP = new THREE.Vector3(0, 1, 0), FLAT = Math.cos(0.5), GATE = 0.22;
+// variants to compare on a real phone (?debug=1): low / high = how calm / how eager, dead = difference left alone, own = use the phone's own motion
+const MODES = { 1: { low: 0.04, high: 0.5, dead: 0.008, own: true }, 2: { low: 0.015, high: 0.3, dead: 0.015, own: true }, 3: { low: 0.15, high: 0.8, dead: 0.004, own: true }, 4: { low: 0.15, high: 0.8, dead: 0.004, own: false } };
+let mode = 1, rec = null;
 let frozen = false, xrCam = null, n = 0, trust = 1, sxx = 0, sxy = 0, lastT = 0, lastSeen = 0;
 let away = [], hist = [], S = 1;
 const R = new THREE.Vector3(), Vel = new THREE.Vector3(), Q = new THREE.Quaternion(), lean = new THREE.Vector3(), camPrev = new THREE.Vector3();
@@ -402,6 +405,7 @@ function onImage({ detail }) {
   const k = { t: now, s: detail.scale, r: p.clone().sub(xrCam.position), c: xrCam.position.clone(),
     q: level(new THREE.Quaternion(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w)) };
   $('hint').classList.add('fade');
+  if (rec) rec.push(['i', now, detail.position.x, detail.position.y, detail.position.z, detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w, detail.scale]);
   if (!seen) {
     restart(k); camPrev.copy(xrCam.position); seen = true; frozen = true; anchor.visible = true; lastSeen = now;
     owlArrived(); $('replace').hidden = false; return;
@@ -429,7 +433,7 @@ function onImage({ detail }) {
   deep.copy(ray).multiplyScalar(innov.dot(ray)); innov.sub(deep);
   lean.lerp(innov, 0.2);                                            // a lasting difference, noise averages out
   const size = lean.length() / h, first = 1 / n;
-  const aSide = Math.max(first, 0.04 + 0.5 * Math.min(1, Math.max(0, (size - 0.008) / 0.025)));
+  const aSide = Math.max(first, MODES[mode].low + MODES[mode].high * Math.min(1, Math.max(0, (size - MODES[mode].dead) / 0.025)));
   R.addScaledVector(innov, aSide).addScaledVector(deep, Math.max(first, 0.08));
   Vel.addScaledVector(innov, 0.04 * Math.min(1, Math.max(0, size - 0.006) / 0.012) / dtS);
   Q.slerp(k.q, Math.max(first, 0.05)); S += (k.s - S) * Math.max(first, 0.04);
@@ -438,7 +442,7 @@ function onImage({ detail }) {
 function advance() {
   const now = performance.now(), dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
   tmpV.copy(xrCam.position).sub(camPrev);
-  if (tmpV.length() < 0.8 * S) R.addScaledVector(tmpV, -trust);      // a bigger leap is the phone losing its place, not a real move
+  if (tmpV.length() < 0.8 * S) R.addScaledVector(tmpV, MODES[mode].own ? -trust : 0);      // a bigger leap is the phone losing its place, not a real move
   camPrev.copy(xrCam.position);
   const fresh = now - lastSeen < 150;
   if (fresh) R.addScaledVector(Vel, dt); Vel.multiplyScalar(Math.exp(-dt * (fresh ? 3 : 20)));
@@ -447,6 +451,7 @@ function glide() {
   if (!seen || !xrCam) return;
   advance();
   anchor.position.copy(xrCam.position).add(R); anchor.quaternion.copy(Q); anchor.scale.setScalar(S);
+  if (rec) { const c = xrCam.position, q = xrCam.quaternion; rec.push(['c', performance.now(), c.x, c.y, c.z, q.x, q.y, q.z, q.w, R.x, R.y, R.z, trust, mode]); }
 }
 // the button at the top right: measure the card again from scratch
 function replaceAnimal() {
@@ -573,6 +578,34 @@ window.addEventListener('load', () => Profile.ensure((p) => {
     startXR();
   }).catch((e) => { console.error('target', e); const t2 = $('hint'); t2.textContent = 'Карточка не загрузилась. Обнови страницу'; t2.hidden = false; t2.classList.remove('fade'); }));
 }));
+
+/* ================= tuning on a real phone: only with ?debug=1 ================= */
+if (new URLSearchParams(location.search).has('debug')) {
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;z-index:34;left:8px;top:calc(env(safe-area-inset-top) + 120px);display:flex;flex-direction:column;gap:6px;width:110px';
+  d.innerHTML = [1, 2, 3, 4].map((m) => `<button class="btn ghost" type="button" data-m="${m}" style="padding:10px 6px;font-size:14px;background:var(--glass)">Вариант ${m}</button>`).join('') + '<button class="btn" type="button" id="dbg-rec" style="padding:10px 6px;font-size:14px">Записать 15 с</button>';
+  document.body.appendChild(d);
+  const paint = () => d.querySelectorAll('[data-m]').forEach((b) => { b.style.borderColor = +b.dataset.m === mode ? 'var(--amber)' : ''; b.style.color = +b.dataset.m === mode ? 'var(--amber)' : ''; });
+  d.addEventListener('pointerup', (e) => e.stopPropagation());
+  d.addEventListener('click', async (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.m) { mode = +b.dataset.m; Vel.set(0, 0, 0); paint(); return; }
+    if (b._text) {                                                   // second tap: hand the file over (a share needs a fresh tap)
+      const f = new File([b._text], 'ar-zapis.txt', { type: 'text/plain' });
+      try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f] }); return; } } catch (x) { if (x.name === 'AbortError') return; }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; a.click(); return;
+    }
+    if (rec) return;
+    rec = []; let left = 15; b.textContent = 'Пишу… 15';
+    const t = setInterval(() => {
+      left--; b.textContent = 'Пишу… ' + left; if (left > 0) return;
+      clearInterval(t); const r = rec; rec = null;
+      b._text = JSON.stringify({ v: window.PAGE_VER, ua: navigator.userAgent, w: innerWidth, h: innerHeight, fov: xrCam && xrCam.projectionMatrix.elements, rows: r.map((x) => x.map((y) => typeof y === 'number' ? +y.toFixed(4) : y)) });
+      b.textContent = 'Отправить запись';
+    }, 1000);
+  });
+  paint();
+}
 
 /* ================= naming ================= */
 function commitName() {
