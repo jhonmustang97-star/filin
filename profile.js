@@ -144,7 +144,7 @@
 })();
 
 /* A phone may keep an old copy of a page. Ask the server for the newest version and reload the page once if this one is older. */
-window.APP_VER = '2026-11-24.2';
+window.APP_VER = '2026-11-24.7';
 (function () {
   if (!/^https?:$/.test(location.protocol)) return;
   fetch('profile.js?fresh=' + Date.now(), { cache: 'no-store' }).then((r) => r.text()).then((t) => {
