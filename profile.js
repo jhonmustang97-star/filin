@@ -144,12 +144,13 @@
 })();
 
 /* A phone may keep an old copy of a page. Ask the server for the newest version and reload the page once if this one is older. */
-window.APP_VER = '2026-11-23.1';
+window.APP_VER = '2026-11-24.2';
 (function () {
   if (!/^https?:$/.test(location.protocol)) return;
   fetch('profile.js?fresh=' + Date.now(), { cache: 'no-store' }).then((r) => r.text()).then((t) => {
     const m = /APP_VER = '([^']+)'/.exec(t), u = new URL(location.href);
-    if (!m || window.PAGE_VER === m[1] || u.searchParams.get('v') === m[1]) return;
+    // only forward, only once, and never while the camera is starting (a reload then hangs Android cameras)
+    if (!m || window.XR_STARTED || (window.PAGE_VER || '') >= m[1] || u.searchParams.get('v') === m[1]) return;
     u.searchParams.set('v', m[1]); location.replace(u.href);
   }).catch(() => { /* offline: keep the copy we have */ });
 })();
