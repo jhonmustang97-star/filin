@@ -185,7 +185,7 @@ button { font-family: var(--body); }
     <div class="sheet-actions">
       <a class="btn ghost" href="collection.html">Вся коллекция</a>
     </div>
-    <p class="credit">Версия 2026-11-24.5. This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
+    <p class="credit">Версия 2026-11-24.6. This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
   </div>
 </section>
 
@@ -193,11 +193,13 @@ button { font-family: var(--body); }
 <script>window.THREE || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"><\/script>')</script>
 <script src="GLTFLoader.js"></script>
 <script>THREE.GLTFLoader || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"><\/script>')</script>
-<script>window.PAGE_VER = '2026-11-24.5';</script>
-<script src="profile.js?v=2026-11-24.5"></script>
-<script src="animals.js?v=2026-11-24.5"></script>
+<script>window.PAGE_VER = '2026-11-24.6';</script>
+<script src="profile.js?v=2026-11-24.6"></script>
+<script src="animals.js?v=2026-11-24.6"></script>
 <script>
 const $ = (id) => document.getElementById(id);
+// ?slam=0: the engine follows only the card, without the room around it
+const NO_ROOM = new URLSearchParams(location.search).get('slam') === '0';
 
 /* ================= which resident this QR opened (?a=baibak); no parameter = the owl ================= */
 const AID = (() => {
@@ -309,8 +311,7 @@ function owlModule() {
       const { scene, camera, renderer } = XR8.Threejs.xrScene();
       xrCam = camera;
       renderer.outputEncoding = THREE.sRGBEncoding;
-      const LIGHT = /Android/i.test(navigator.userAgent);      // Android: painted shadow, so tracking gets the processor time
-      renderer.shadowMap.enabled = !LIGHT;
+      renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
       scene.add(new THREE.HemisphereLight(0xfff6e8, 0x5b5246, 1.0));
@@ -322,7 +323,7 @@ function owlModule() {
 
       const sun = new THREE.DirectionalLight(0xffffff, 0.9);
       sun.position.set(0.5, -0.7, 2.2);          // card space: +z points up out of the card
-      sun.castShadow = !LIGHT;
+      sun.castShadow = true;
       sun.shadow.mapSize.setScalar(/Android/i.test(navigator.userAgent) ? 512 : 1024);   // lighter shadows leave Android more time for tracking
       Object.assign(sun.shadow.camera, { left: -2, right: 2, top: 2, bottom: -2, near: 0.1, far: 8 });
       sun.shadow.bias = -0.002;
@@ -331,14 +332,7 @@ function owlModule() {
       const catcher = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), new THREE.ShadowMaterial({ opacity: 0.35 }));
       catcher.position.z = 0.002;
       catcher.receiveShadow = true;
-      if (!LIGHT) anchor.add(catcher);
-      else {
-        const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
-        const gr = g.createRadialGradient(64, 64, 8, 64, 64, 62); gr.addColorStop(0, 'rgba(0,0,0,.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-        g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
-        const blob = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.95), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
-        blob.position.set(PLACE.x, PLACE.y, 0.003); anchor.add(blob);
-      }
+      anchor.add(catcher);
 
       // the model is Y-up; stand it on the card (card normal is +z) and centre its base on the QR code
       const stand = new THREE.Group();
@@ -379,87 +373,120 @@ function owlModule() {
   };
 }
 
-/* Placement: the animal stands on the QR card, seen from the camera.
-   Some phones (mostly Android) misjudge how far the camera itself moved, so a place "in the room" slides along with the camera.
-   What can be trusted: the turn of the phone (gyroscope) and the card in the picture. So the code keeps the arrow camera -> card
-   (in room directions, so turning the phone does not change it), filters that arrow against the sightings and puts the animal at its end.
-   Between sightings the arrow is moved on by the phone's own motion, multiplied by `trust`: how far the phone really moves
-   compared with what it claims (1 = honest, 3 = it moved three times further). trust is measured all the time from the card. */
-const UP = new THREE.Vector3(0, 1, 0), FLAT = Math.cos(0.5), GATE = 0.22;
-// variants to compare on a real phone (?debug=1): low / high = how calm / how eager, dead = difference left alone, own = use the phone's own motion
-const MODES = { 1: { low: 0.04, high: 0.5, dead: 0.008, own: true }, 2: { low: 0.015, high: 0.3, dead: 0.015, own: true }, 3: { low: 0.15, high: 0.8, dead: 0.004, own: true }, 4: { low: 0.15, high: 0.8, dead: 0.004, own: false } };
-let mode = 1, rec = null;
-let frozen = false, xrCam = null, n = 0, trust = 1, sxx = 0, sxy = 0, lastT = 0, lastSeen = 0;
-let away = [], hist = [], S = 1;
-const R = new THREE.Vector3(), Vel = new THREE.Vector3(), Q = new THREE.Quaternion(), lean = new THREE.Vector3(), camPrev = new THREE.Vector3();
-const innov = new THREE.Vector3(), ray = new THREE.Vector3(), deep = new THREE.Vector3(), tmpV = new THREE.Vector3();
+/* Placement: the animal is glued to the QR card.
+   The phone's own idea of where it is in the room wobbles (a lot on Android), so while the card is visible the animal
+   follows the card itself: sideways quickly and exactly, in depth / turn / size slowly, because those are the noisy ones.
+   The vertical comes from gravity when the card lies flat, so a tall animal never sways.
+   Wrong sightings are ignored unless they repeat and agree. With the card out of view the animal stays put in the room. */
+const KEEP_MS = 320;             // good measurements used at once
+const NEAR = 0.2, NEAR_ANG = 0.4; // card heights / radians: further than this is suspicious
+const AWAY_MS = 450, AWAY_MIN = 8, AWAY_SPREAD = 0.06;   // a suspicious place is believed only after this
+const SETTLE_MS = 900, MIN_SAMPLES = 8;
+const UP = new THREE.Vector3(0, 1, 0), FLAT = Math.cos(0.5);
+let firstSeenAt = 0, frozen = false, samples = [], away = [], xrCam = null;
+const median = (l) => { const c = l.slice().sort((x, y) => x - y), m = c.length >> 1; return c.length % 2 ? c[m] : (c[m - 1] + c[m]) / 2; };
+function poseOf(list) {
+  const pos = new THREE.Vector3(median(list.map((k) => k.p.x)), median(list.map((k) => k.p.y)), median(list.map((k) => k.p.z)));
+  // average the rotations that agree with the most typical one
+  let best = list[0].q, bd = Infinity;
+  for (const k of list) { let d = 0; for (const o of list) d += k.q.angleTo(o.q); if (d < bd) { bd = d; best = k.q; } }
+  const quat = best.clone(); let n = 1;
+  for (const k of list) if (k.q !== best && k.q.angleTo(best) < 0.25) quat.slerp(k.q, 1 / ++n);
+  return { pos, quat: level(quat), scale: median(list.map((k) => k.s)) };
+}
 // a card lying on a table: its face points exactly up, only the turn around the vertical is kept
 function level(q) {
-  const f = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
-  return f.dot(UP) < FLAT ? q : new THREE.Quaternion().setFromUnitVectors(f, UP).multiply(q);
+  const n = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
+  if (n.dot(UP) < FLAT) return q;
+  return new THREE.Quaternion().setFromUnitVectors(n, UP).multiply(q);
 }
-function restart(k) { R.copy(k.r); Q.copy(k.q); S = k.s; Vel.set(0, 0, 0); lean.set(0, 0, 0); n = 1; away = []; hist = []; }
+function recent(list, now, ms) { while (list.length && now - list[0].t > ms) list.shift(); return list; }
+// variants to compare on a real phone (?debug=1): 1 = the normal one, 2 = exactly what the engine says, 3 = the same, softened, 4 = fixed in the room after a second
+let mode = NO_ROOM ? 2 : 1, rec = null;
+const rawP = new THREE.Vector3(), rawQ = new THREE.Quaternion(); let rawS = 1, firstAt = 0;
 function onImage({ detail }) {
-  if (!anchor || !xrCam || detail.name !== TARGET_NAME) return;
-  const now = performance.now(), p = new THREE.Vector3(detail.position.x, detail.position.y, detail.position.z);
-  const k = { t: now, s: detail.scale, r: p.clone().sub(xrCam.position), c: xrCam.position.clone(),
-    q: level(new THREE.Quaternion(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w)) };
-  $('hint').classList.add('fade');
+  if (!anchor || detail.name !== TARGET_NAME) return;
+  const now = performance.now();
   if (rec) rec.push(['i', now, detail.position.x, detail.position.y, detail.position.z, detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w, detail.scale]);
-  if (!seen) {
-    restart(k); camPrev.copy(xrCam.position); seen = true; frozen = true; anchor.visible = true; lastSeen = now;
-    owlArrived(); $('replace').hidden = false; return;
+  rawP.copy(detail.position); rawQ.set(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w); rawS = detail.scale;
+  if (mode !== 1 && seen) {
+    if (!firstAt) firstAt = now;
+    if (mode === 2 || (mode === 4 && now - firstAt < 1000)) { anchor.position.copy(rawP); anchor.quaternion.copy(rawQ); anchor.scale.setScalar(rawS); }
+    anchor.visible = true; $('hint').classList.add('fade'); return;
   }
-  advance();
-  const h = S, odd = k.r.distanceTo(R) > GATE * h || k.q.angleTo(Q) > 0.5, dtS = Math.min(0.1, Math.max(0.01, (now - lastSeen) / 1000));
-  if (odd && n > 5) {                                               // a strange sighting: believed only when three agree
-    away.push(k); if (away.length > 4) away.shift();
-    const t = away.slice(-3);
-    if (t.length === 3 && now - t[0].t < 500 && t.every((o) => o.r.distanceTo(k.r) < 0.1 * h && o.q.angleTo(k.q) < 0.4)) { const keep = trust; restart(k); n = 6; trust = keep; }
+  const k = { t: now, s: detail.scale, p: new THREE.Vector3(detail.position.x, detail.position.y, detail.position.z),
+    q: level(new THREE.Quaternion(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w)) };
+  recent(samples, now, frozen ? KEEP_MS : SETTLE_MS); recent(away, now, AWAY_MS);
+  if (!seen) {
+    samples = [k]; away = [];
+    anchor.position.copy(k.p); anchor.quaternion.copy(k.q); anchor.scale.setScalar(k.s);
+    anchor.visible = true; seen = true; firstSeenAt = now; frozen = false;
+    owlArrived(); $('replace').hidden = false;
+  } else if (!frozen) {
+    samples.push(k);
+    if (now - firstSeenAt > SETTLE_MS && samples.length >= MIN_SAMPLES) {
+      const m = poseOf(samples); anchor.position.copy(m.pos); anchor.quaternion.copy(m.quat); anchor.scale.setScalar(m.scale);
+      frozen = true; away = [];
+    }
+  } else {
+    const h = anchor.scale.x;
+    if (k.p.distanceTo(anchor.position) < NEAR * h && k.q.angleTo(anchor.quaternion) < NEAR_ANG) { samples.push(k); away = []; }
+    else {
+      away.push(k);
+      // the same card, same turn, just shifted, three times running: the phone lost its place in the room, follow at once
+      const tail = away.slice(-3);
+      if (tail.length === 3 && tail.every((o) => o.p.distanceTo(k.p) < AWAY_SPREAD * h && o.q.angleTo(anchor.quaternion) < NEAR_ANG)) { samples = tail; away = []; moving = now; return; }
+      if (away.length >= AWAY_MIN && now - away[0].t > AWAY_MS * 0.75) {
+        const m = poseOf(away);
+        if (median(away.map((o) => o.p.distanceTo(m.pos))) < AWAY_SPREAD * h) {   // the card (or the room) really moved
+          const good = away.filter((o) => o.p.distanceTo(m.pos) < 2 * AWAY_SPREAD * h && o.q.angleTo(m.quat) < NEAR_ANG);
+          if (good.length >= AWAY_MIN * 0.7) { samples = good; away = []; moving = now; }
+        }
+      }
+    }
+  }
+  $('hint').classList.add('fade');
+}
+let moving = 0;
+const ray = new THREE.Vector3(), err = new THREE.Vector3(), fresh = new THREE.Vector3(), deep = new THREE.Vector3();
+function glide(dt) {
+  if (rec && xrCam) { const c = xrCam.position, q = xrCam.quaternion, a = anchor.position; rec.push(['c', performance.now(), c.x, c.y, c.z, q.x, q.y, q.z, q.w, a.x, a.y, a.z, anchor.scale.x, mode]); }
+  if (mode !== 1) {
+    if (mode === 3 && seen) { const k = 1 - Math.exp(-12 * dt); anchor.position.lerp(rawP, k); anchor.quaternion.slerp(rawQ, k); anchor.scale.setScalar(THREE.MathUtils.lerp(anchor.scale.x, rawS, k)); }
     return;
   }
-  away = []; if (now - lastSeen > 400) { hist = []; Vel.set(0, 0, 0); }
-  lastSeen = now; n++;
-  // how far does the phone really move, compared with what it claims?
-  hist.push(k); while (hist.length > 1 && now - hist[0].t > 450) hist.shift();
-  const o = hist[0];
-  if (now - o.t > 250) {
-    const dc = tmpV.copy(k.c).sub(o.c), mm = dc.lengthSq() / (h * h);
-    if (mm > 0.0004) { sxx = sxx * 0.97 + mm; sxy = sxy * 0.97 - k.r.clone().sub(o.r).dot(dc) / (h * h); }
-    trust = Math.min(4, Math.max(0, (sxy + 0.03) / (sxx + 0.03)));
+  if (!seen || !samples.length) return;
+  const now = performance.now();
+  if (now - samples[samples.length - 1].t > 200) return;          // card not in view: stay where we are in the room
+  const list = samples;
+  if (list.length < 3) return;
+  const m = poseOf(list), h = anchor.scale.x, ease = (k) => 1 - Math.exp(-k * dt);
+  if (!frozen) {                                                   // first second: quick, calm approach
+    anchor.position.lerp(m.pos, ease(8)); anchor.quaternion.slerp(m.quat, ease(6)); anchor.scale.setScalar(THREE.MathUtils.lerp(h, m.scale, ease(6)));
+    return;
   }
-  // filter: sideways exact and quick, depth / turn / size calm
-  innov.copy(k.r).sub(R); ray.copy(R).normalize();
-  deep.copy(ray).multiplyScalar(innov.dot(ray)); innov.sub(deep);
-  lean.lerp(innov, 0.2);                                            // a lasting difference, noise averages out
-  const size = lean.length() / h, first = 1 / n;
-  const aSide = Math.max(first, MODES[mode].low + MODES[mode].high * Math.min(1, Math.max(0, (size - MODES[mode].dead) / 0.025)));
-  R.addScaledVector(innov, aSide).addScaledVector(deep, Math.max(first, 0.08));
-  Vel.addScaledVector(innov, 0.04 * Math.min(1, Math.max(0, size - 0.006) / 0.012) / dtS);
-  Q.slerp(k.q, Math.max(first, 0.05)); S += (k.s - S) * Math.max(first, 0.04);
-}
-// carry the arrow on to this very frame
-function advance() {
-  const now = performance.now(), dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
-  tmpV.copy(xrCam.position).sub(camPrev);
-  if (tmpV.length() < 0.8 * S) R.addScaledVector(tmpV, MODES[mode].own ? -trust : 0);      // a bigger leap is the phone losing its place, not a real move
-  camPrev.copy(xrCam.position);
-  const fresh = now - lastSeen < 150;
-  if (fresh) R.addScaledVector(Vel, dt); Vel.multiplyScalar(Math.exp(-dt * (fresh ? 3 : 20)));
-}
-function glide() {
-  if (!seen || !xrCam) return;
-  advance();
-  anchor.position.copy(xrCam.position).add(R); anchor.quaternion.copy(Q); anchor.scale.setScalar(S);
-  if (rec) { const c = xrCam.position, q = xrCam.quaternion; rec.push(['c', performance.now(), c.x, c.y, c.z, q.x, q.y, q.z, q.w, R.x, R.y, R.z, trust, mode]); }
+  // sideways position from the five freshest sightings (no lag), depth from the longer window (less noise)
+  const last = list.slice(-5), f = (c) => median(last.map((k) => k.p[c]));
+  fresh.set(f('x'), f('y'), f('z')); err.copy(fresh).sub(anchor.position);
+  if (xrCam) { ray.copy(anchor.position).sub(xrCam.position).normalize(); } else ray.set(0, 0, -1);
+  err.addScaledVector(ray, -err.dot(ray)); deep.copy(ray).multiplyScalar(fresh.copy(m.pos).sub(anchor.position).dot(ray));
+  const side = err.length() / h, dz = deep.length() / h, jump = now - moving < 1200;
+  // sideways: what the eye sees. Ignore the last half percent of noise, catch up fast with anything bigger
+  if (side > 0.005) anchor.position.addScaledVector(err, (1 - 0.005 / side) * ease(jump ? 30 : 2 + 28 * Math.min(1, Math.max(0, (side - 0.006) / 0.03))));
+  if (dz > 0.015) anchor.position.addScaledVector(deep, (1 - 0.015 / dz) * ease(jump ? 6 : 1.2));
+  const ang = anchor.quaternion.angleTo(m.quat);
+  if (ang > 0.012) anchor.quaternion.slerp(m.quat, ease(jump ? 6 : 1.2));
+  if (Math.abs(m.scale / h - 1) > 0.015) anchor.scale.setScalar(THREE.MathUtils.lerp(h, m.scale, ease(jump ? 4 : 0.6)));
 }
 // the button at the top right: measure the card again from scratch
 function replaceAnimal() {
-  seen = false; frozen = false; away = []; hist = []; trust = 1; sxx = sxy = 0; if (anchor) anchor.visible = false;
+  seen = false; frozen = false; samples = []; away = []; if (anchor) anchor.visible = false;
   const t = $('hint'); t.textContent = 'Наведи камеру на карточку и подержи секунду'; t.hidden = false; t.classList.remove('fade');
 }
 $('replace').addEventListener('click', replaceAnimal);
 function onImageLost({ detail }) {
+  if (rec) rec.push(['lost', performance.now()]);
+  if (NO_ROOM && anchor && detail && detail.name === TARGET_NAME) anchor.visible = false;      // without the room there is nothing to hold on to
   // world tracking keeps the owl where the card was: nothing to hide
   if (detail && detail.name !== TARGET_NAME) return;
 }
@@ -478,7 +505,7 @@ window.addEventListener('pointerup', (e) => {
 /* ================= start: XRExtras shows loading, asks for camera/motion access, then runs the engine ================= */
 let TARGET = null;
 const onxrloaded = () => {
-  XR8.XrController.configure({ imageTargetData: [TARGET], disableWorldTracking: false });
+  XR8.XrController.configure({ imageTargetData: [TARGET], disableWorldTracking: NO_ROOM });
   XR8.addCameraPipelineModules([
     XR8.GlTextureRenderer.pipelineModule(),
     XR8.Threejs.pipelineModule(),
@@ -583,13 +610,14 @@ window.addEventListener('load', () => Profile.ensure((p) => {
 if (new URLSearchParams(location.search).has('debug')) {
   const d = document.createElement('div');
   d.style.cssText = 'position:fixed;z-index:34;left:8px;top:calc(env(safe-area-inset-top) + 120px);display:flex;flex-direction:column;gap:6px;width:110px';
-  d.innerHTML = [1, 2, 3, 4].map((m) => `<button class="btn ghost" type="button" data-m="${m}" style="padding:10px 6px;font-size:14px;background:var(--glass)">Вариант ${m}</button>`).join('') + '<button class="btn" type="button" id="dbg-rec" style="padding:10px 6px;font-size:14px">Записать 15 с</button>';
+  d.innerHTML = [1, 2, 3, 4].map((m) => `<button class="btn ghost" type="button" data-m="${m}" style="padding:10px 6px;font-size:14px;background:var(--glass)">Вариант ${m}</button>`).join('') + `<button class="btn ghost" type="button" id="dbg-room" style="padding:10px 6px;font-size:14px;background:var(--glass)">${NO_ROOM ? 'С комнатой' : 'Вариант 5'}</button>` + '<button class="btn" type="button" id="dbg-rec" style="padding:10px 6px;font-size:14px">Записать 15 с</button>';
   document.body.appendChild(d);
   const paint = () => d.querySelectorAll('[data-m]').forEach((b) => { b.style.borderColor = +b.dataset.m === mode ? 'var(--amber)' : ''; b.style.color = +b.dataset.m === mode ? 'var(--amber)' : ''; });
   d.addEventListener('pointerup', (e) => e.stopPropagation());
   d.addEventListener('click', async (e) => {
     const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.m) { mode = +b.dataset.m; Vel.set(0, 0, 0); paint(); return; }
+    if (b.dataset.m) { mode = +b.dataset.m; firstAt = 0; samples = []; away = []; paint(); return; }
+    if (b.id === 'dbg-room') { const u = new URL(location.href); if (NO_ROOM) u.searchParams.delete('slam'); else u.searchParams.set('slam', '0'); location.replace(u.href); return; }
     if (b._text) {                                                   // second tap: hand the file over (a share needs a fresh tap)
       const f = new File([b._text], 'ar-zapis.txt', { type: 'text/plain' });
       try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f] }); return; } } catch (x) { if (x.name === 'AbortError') return; }
@@ -600,7 +628,7 @@ if (new URLSearchParams(location.search).has('debug')) {
     const t = setInterval(() => {
       left--; b.textContent = 'Пишу… ' + left; if (left > 0) return;
       clearInterval(t); const r = rec; rec = null;
-      b._text = JSON.stringify({ v: window.PAGE_VER, ua: navigator.userAgent, w: innerWidth, h: innerHeight, fov: xrCam && xrCam.projectionMatrix.elements, rows: r.map((x) => x.map((y) => typeof y === 'number' ? +y.toFixed(4) : y)) });
+      b._text = JSON.stringify({ v: window.PAGE_VER, ua: navigator.userAgent, room: !NO_ROOM, w: innerWidth, h: innerHeight, fov: xrCam && xrCam.projectionMatrix.elements, rows: r.map((x) => x.map((y) => typeof y === 'number' ? +y.toFixed(4) : y)) });
       b.textContent = 'Отправить запись';
     }, 1000);
   });
