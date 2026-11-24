@@ -570,11 +570,14 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
 
 <div id="loading"><div class="box"><h1>Мой заповедник</h1><div class="prog"><i id="load-bar"></i></div><p id="load-text">Сажаем деревья…</p></div></div>
 
-<script>window.PAGE_VER = '2026-11-23.1';</script>
-<script src="profile.js?v=2026-11-23.1"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script>window.PAGE_VER = '2026-11-24.2';</script>
+<script src="profile.js?v=2026-11-24.2"></script>
+<script src="three.min.js"></script>
+<script>window.THREE || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"><\/script>')</script>
+<script src="GLTFLoader.js"></script>
+<script>THREE.GLTFLoader || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"><\/script>')</script>
+<script src="OrbitControls.js"></script>
+<script>THREE.OrbitControls || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"><\/script>')</script>
 <script>
 /* ======================================================================= data */
 const FOODS = {
