@@ -570,8 +570,8 @@ body.photo .hud-top, body.photo .dock, body.photo .hud-bottom, body.photo #overl
 
 <div id="loading"><div class="box"><h1>Мой заповедник</h1><div class="prog"><i id="load-bar"></i></div><p id="load-text">Сажаем деревья…</p></div></div>
 
-<script>window.PAGE_VER = '2026-11-24.2';</script>
-<script src="profile.js?v=2026-11-24.2"></script>
+<script>window.PAGE_VER = '2026-11-24.7';</script>
+<script src="profile.js?v=2026-11-24.7"></script>
 <script src="three.min.js"></script>
 <script>window.THREE || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"><\/script>')</script>
 <script src="GLTFLoader.js"></script>
@@ -1357,7 +1357,15 @@ function addHarvest(locId, r) {
 
 
 /* ======================================================================= animals */
-const loader = new THREE.GLTFLoader();
+// Android and iPhone load model textures in different ways by default; use the iPhone way everywhere so the picture is the same
+function sameTextures(loader) {
+  return loader.register((parser) => { parser.textureLoader = new THREE.TextureLoader(parser.options.manager); return { name: 'SAME_TEXTURES' }; });
+}
+function crisp(root, renderer) {
+  const an = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  root.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap']) if (m[k]) { m[k].anisotropy = an; m[k].needsUpdate = true; } });
+}
+const loader = sameTextures(new THREE.GLTFLoader());
 const GLTF = {};
 const animals = [];
 let selected = null;
@@ -1376,7 +1384,7 @@ async function loadSpecies(id) {
 
 function spawn(id, x, z, perch) {
   const gltf = GLTF[id]; const sp = SPECIES[id];
-  const model = gltf.scene;
+  const model = gltf.scene; crisp(model, renderer);
   if (model.parent) model.parent.remove(model);          // reused after a location reload: detach from the old root so its height is not counted twice
   model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; if (o.material) o.material.side = THREE.DoubleSide; } });
   model.position.set(0, 0, 0); model.rotation.set(0, 0, 0); model.scale.setScalar(1); model.updateMatrixWorld(true);
