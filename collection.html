@@ -72,8 +72,9 @@ h1 { font-family: var(--display); font-size: clamp(28px, 8vw, 40px); line-height
   <p class="note">Коллекция хранится на этом телефоне, у каждого игрока своя. Новых обитателей ищи по QR-кодам на карточках в книжке.</p>
 </main>
 
-<script src="profile.js"></script>
-<script src="animals.js"></script>
+<script>window.PAGE_VER = '2026-11-23.1';</script>
+<script src="profile.js?v=2026-11-23.1"></script>
+<script src="animals.js?v=2026-11-23.1"></script>
 <script>
 Profile.ensure((player) => {
 document.getElementById('who').textContent = player.avatar + ' ' + player.name;
