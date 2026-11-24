@@ -185,7 +185,7 @@ button { font-family: var(--body); }
     <div class="sheet-actions">
       <a class="btn ghost" href="collection.html">Вся коллекция</a>
     </div>
-    <p class="credit">Версия 2026-11-24.3. This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
+    <p class="credit">Версия 2026-11-24.4. This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
   </div>
 </section>
 
@@ -193,9 +193,9 @@ button { font-family: var(--body); }
 <script>window.THREE || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"><\/script>')</script>
 <script src="GLTFLoader.js"></script>
 <script>THREE.GLTFLoader || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"><\/script>')</script>
-<script>window.PAGE_VER = '2026-11-24.3';</script>
-<script src="profile.js?v=2026-11-24.3"></script>
-<script src="animals.js?v=2026-11-24.3"></script>
+<script>window.PAGE_VER = '2026-11-24.4';</script>
+<script src="profile.js?v=2026-11-24.4"></script>
+<script src="animals.js?v=2026-11-24.4"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 
@@ -379,112 +379,78 @@ function owlModule() {
   };
 }
 
-/* Placement: the animal is glued to the QR card.
-   The phone's own idea of where it is in the room wobbles (a lot on Android), so while the card is visible the animal
-   follows the card itself: sideways quickly and exactly, in depth / turn / size slowly, because those are the noisy ones.
-   The vertical comes from gravity when the card lies flat, so a tall animal never sways.
-   Wrong sightings are ignored unless they repeat and agree. With the card out of view the animal stays put in the room. */
-const KEEP_MS = 320;             // good measurements used at once
-const NEAR = 0.2, NEAR_ANG = 0.4; // card heights / radians: further than this is suspicious
-const AWAY_MS = 450, AWAY_MIN = 8, AWAY_SPREAD = 0.06;   // a suspicious place is believed only after this
-const SETTLE_MS = 900, MIN_SAMPLES = 8;
-const UP = new THREE.Vector3(0, 1, 0), FLAT = Math.cos(0.5);
-let firstSeenAt = 0, frozen = false, samples = [], away = [], xrCam = null;
-const median = (l) => { const c = l.slice().sort((x, y) => x - y), m = c.length >> 1; return c.length % 2 ? c[m] : (c[m - 1] + c[m]) / 2; };
-function poseOf(list) {
-  const pos = new THREE.Vector3(median(list.map((k) => k.p.x)), median(list.map((k) => k.p.y)), median(list.map((k) => k.p.z)));
-  // average the rotations that agree with the most typical one
-  let best = list[0].q, bd = Infinity;
-  for (const k of list) { let d = 0; for (const o of list) d += k.q.angleTo(o.q); if (d < bd) { bd = d; best = k.q; } }
-  const quat = best.clone(); let n = 1;
-  for (const k of list) if (k.q !== best && k.q.angleTo(best) < 0.25) quat.slerp(k.q, 1 / ++n);
-  return { pos, quat: level(quat), scale: median(list.map((k) => k.s)) };
-}
+/* Placement: the animal stands on the QR card, seen from the camera.
+   Some phones (mostly Android) misjudge how far the camera itself moved, so a place "in the room" slides along with the camera.
+   What can be trusted: the turn of the phone (gyroscope) and the card in the picture. So the code keeps the arrow camera -> card
+   (in room directions, so turning the phone does not change it), filters that arrow against the sightings and puts the animal at its end.
+   Between sightings the arrow is moved on by the phone's own motion, multiplied by `trust`: how far the phone really moves
+   compared with what it claims (1 = honest, 3 = it moved three times further). trust is measured all the time from the card. */
+const UP = new THREE.Vector3(0, 1, 0), FLAT = Math.cos(0.5), GATE = 0.22;
+let frozen = false, xrCam = null, n = 0, trust = 1, sxx = 0, sxy = 0, lastT = 0, lastSeen = 0;
+let away = [], hist = [], S = 1;
+const R = new THREE.Vector3(), Vel = new THREE.Vector3(), Q = new THREE.Quaternion(), lean = new THREE.Vector3(), camPrev = new THREE.Vector3();
+const innov = new THREE.Vector3(), ray = new THREE.Vector3(), deep = new THREE.Vector3(), tmpV = new THREE.Vector3();
 // a card lying on a table: its face points exactly up, only the turn around the vertical is kept
 function level(q) {
-  const n = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
-  if (n.dot(UP) < FLAT) return q;
-  return new THREE.Quaternion().setFromUnitVectors(n, UP).multiply(q);
+  const f = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
+  return f.dot(UP) < FLAT ? q : new THREE.Quaternion().setFromUnitVectors(f, UP).multiply(q);
 }
-function recent(list, now, ms) { while (list.length && now - list[0].t > ms) list.shift(); return list; }
+function restart(k) { R.copy(k.r); Q.copy(k.q); S = k.s; Vel.set(0, 0, 0); lean.set(0, 0, 0); n = 1; away = []; hist = []; }
 function onImage({ detail }) {
-  if (!anchor || detail.name !== TARGET_NAME) return;
-  const now = performance.now();
-  const k = { t: now, s: detail.scale, p: new THREE.Vector3(detail.position.x, detail.position.y, detail.position.z),
+  if (!anchor || !xrCam || detail.name !== TARGET_NAME) return;
+  const now = performance.now(), p = new THREE.Vector3(detail.position.x, detail.position.y, detail.position.z);
+  const k = { t: now, s: detail.scale, r: p.clone().sub(xrCam.position), c: xrCam.position.clone(),
     q: level(new THREE.Quaternion(detail.rotation.x, detail.rotation.y, detail.rotation.z, detail.rotation.w)) };
-  recent(samples, now, frozen ? KEEP_MS : SETTLE_MS); recent(away, now, AWAY_MS);
-  if (!seen) {
-    samples = [k]; away = [];
-    anchor.position.copy(k.p); anchor.quaternion.copy(k.q); anchor.scale.setScalar(k.s);
-    anchor.visible = true; seen = true; firstSeenAt = now; frozen = false;
-    owlArrived(); $('replace').hidden = false;
-  } else if (!frozen) {
-    samples.push(k);
-    if (now - firstSeenAt > SETTLE_MS && samples.length >= MIN_SAMPLES) {
-      const m = poseOf(samples); anchor.position.copy(m.pos); anchor.quaternion.copy(m.quat); anchor.scale.setScalar(m.scale);
-      frozen = true; away = [];
-    }
-  } else {
-    const h = anchor.scale.x;
-    if (k.p.distanceTo(anchor.position) < NEAR * h && k.q.angleTo(anchor.quaternion) < NEAR_ANG) { samples.push(k); away = []; }
-    else {
-      away.push(k);
-      // the same card, same turn, just shifted, three times running: the phone lost its place in the room, follow at once
-      const tail = away.slice(-3);
-      if (tail.length === 3 && tail.every((o) => o.p.distanceTo(k.p) < AWAY_SPREAD * h && o.q.angleTo(anchor.quaternion) < NEAR_ANG)) { samples = tail; away = []; moving = now; return; }
-      if (away.length >= AWAY_MIN && now - away[0].t > AWAY_MS * 0.75) {
-        const m = poseOf(away);
-        if (median(away.map((o) => o.p.distanceTo(m.pos))) < AWAY_SPREAD * h) {   // the card (or the room) really moved
-          const good = away.filter((o) => o.p.distanceTo(m.pos) < 2 * AWAY_SPREAD * h && o.q.angleTo(m.quat) < NEAR_ANG);
-          if (good.length >= AWAY_MIN * 0.7) { samples = good; away = []; moving = now; }
-        }
-      }
-    }
-  }
   $('hint').classList.add('fade');
+  if (!seen) {
+    restart(k); camPrev.copy(xrCam.position); seen = true; frozen = true; anchor.visible = true; lastSeen = now;
+    owlArrived(); $('replace').hidden = false; return;
+  }
+  advance();
+  const h = S, odd = k.r.distanceTo(R) > GATE * h || k.q.angleTo(Q) > 0.5, dtS = Math.min(0.1, Math.max(0.01, (now - lastSeen) / 1000));
+  if (odd && n > 5) {                                               // a strange sighting: believed only when three agree
+    away.push(k); if (away.length > 4) away.shift();
+    const t = away.slice(-3);
+    if (t.length === 3 && now - t[0].t < 500 && t.every((o) => o.r.distanceTo(k.r) < 0.1 * h && o.q.angleTo(k.q) < 0.4)) { const keep = trust; restart(k); n = 6; trust = keep; }
+    return;
+  }
+  away = []; if (now - lastSeen > 400) { hist = []; Vel.set(0, 0, 0); }
+  lastSeen = now; n++;
+  // how far does the phone really move, compared with what it claims?
+  hist.push(k); while (hist.length > 1 && now - hist[0].t > 450) hist.shift();
+  const o = hist[0];
+  if (now - o.t > 250) {
+    const dc = tmpV.copy(k.c).sub(o.c), mm = dc.lengthSq() / (h * h);
+    if (mm > 0.0004) { sxx = sxx * 0.97 + mm; sxy = sxy * 0.97 - k.r.clone().sub(o.r).dot(dc) / (h * h); }
+    trust = Math.min(4, Math.max(0, (sxy + 0.03) / (sxx + 0.03)));
+  }
+  // filter: sideways exact and quick, depth / turn / size calm
+  innov.copy(k.r).sub(R); ray.copy(R).normalize();
+  deep.copy(ray).multiplyScalar(innov.dot(ray)); innov.sub(deep);
+  lean.lerp(innov, 0.2);                                            // a lasting difference, noise averages out
+  const size = lean.length() / h, first = 1 / n;
+  const aSide = Math.max(first, 0.04 + 0.5 * Math.min(1, Math.max(0, (size - 0.008) / 0.025)));
+  R.addScaledVector(innov, aSide).addScaledVector(deep, Math.max(first, 0.08));
+  Vel.addScaledVector(innov, 0.04 * Math.min(1, Math.max(0, size - 0.006) / 0.012) / dtS);
+  Q.slerp(k.q, Math.max(first, 0.05)); S += (k.s - S) * Math.max(first, 0.04);
 }
-let moving = 0;
-// Sticky following: small differences are noise and are left alone, a real one starts a smooth correction that runs to the end.
-// The faster the camera moves the noisier the sightings, so the more the animal trusts the room and the calmer it stays.
-const ray = new THREE.Vector3(), err = new THREE.Vector3(), deep = new THREE.Vector3(), soft = new THREE.Vector3(), softQ = new THREE.Quaternion();
-const camWas = new THREE.Vector3(), camWasQ = new THREE.Quaternion();
-let softS = 1, softOk = false, mv = 0, gSide = 0, gDeep = 0, gTurn = 0, fixSide = false, fixDeep = false, fixTurn = false;
-function glide(dt) {
-  const ease = (k) => 1 - Math.exp(-k * dt);
-  if (xrCam && dt > 0) {                                           // camera speed, 0 = held still, 1 = moving
-    const v = (camWas.distanceTo(xrCam.position) / (seen ? anchor.scale.x : 1) + camWasQ.angleTo(xrCam.quaternion) * 2) / dt;
-    camWas.copy(xrCam.position); camWasQ.copy(xrCam.quaternion);
-    const t = Math.min(1, Math.max(0, (v - 0.15) / 0.6)); mv += (t - mv) * ease(t > mv ? 12 : 2.5);
-  }
-  if (!seen || !samples.length) { softOk = false; return; }
-  const now = performance.now();
-  if (now - samples[samples.length - 1].t > 200) { softOk = false; fixSide = fixDeep = fixTurn = false; gSide = gDeep = gTurn = 0; return; }   // card not in view: stay where we are in the room
-  if (samples.length < 3) return;
-  const m = poseOf(samples), h = anchor.scale.x;
-  if (!frozen) {                                                   // first second: quick, calm approach
-    anchor.position.lerp(m.pos, ease(8)); anchor.quaternion.slerp(m.quat, ease(6)); anchor.scale.setScalar(THREE.MathUtils.lerp(h, m.scale, ease(6)));
-    softOk = false; return;
-  }
-  if (!softOk || now - moving < 60) { soft.copy(m.pos); softQ.copy(m.quat); softS = m.scale; softOk = true; }
-  soft.lerp(m.pos, ease(7)); softQ.slerp(m.quat, ease(3)); softS += (m.scale - softS) * ease(3);
-  err.copy(soft).sub(anchor.position);
-  if (xrCam) ray.copy(anchor.position).sub(xrCam.position).normalize(); else ray.set(0, 0, -1);
-  deep.copy(ray).multiplyScalar(err.dot(ray)); err.sub(deep);
-  const side = err.length() / h, dz = deep.length() / h, ang = anchor.quaternion.angleTo(softQ), ds = Math.abs(softS / h - 1);
-  const lost = now - moving < 900 || side > 0.14;                   // the phone lost its place in the room: go back to the QR quickly
-  if (side > 0.012 + 0.022 * mv) fixSide = true; else if (side < 0.004) fixSide = false;
-  if (dz > 0.03 + 0.04 * mv) fixDeep = true; else if (dz < 0.01) fixDeep = false;
-  if (ang > 0.035 + 0.05 * mv || ds > 0.03 + 0.03 * mv) fixTurn = true; else if (ang < 0.012 && ds < 0.012) fixTurn = false;
-  // corrections start and stop gently
-  gSide += ((fixSide ? (lost ? 16 : 5 - 2 * mv) : 0) - gSide) * ease(lost ? 40 : 7);
-  gDeep += ((fixDeep ? (lost ? 6 : 1.2) : 0) - gDeep) * ease(4);
-  gTurn += ((fixTurn ? (lost ? 5 : 1) : 0) - gTurn) * ease(4);
-  anchor.position.addScaledVector(err, ease(gSide)).addScaledVector(deep, ease(gDeep));
-  anchor.quaternion.slerp(softQ, ease(gTurn)); anchor.scale.setScalar(THREE.MathUtils.lerp(h, softS, ease(gTurn * 0.7)));
+// carry the arrow on to this very frame
+function advance() {
+  const now = performance.now(), dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+  tmpV.copy(xrCam.position).sub(camPrev);
+  if (tmpV.length() < 0.8 * S) R.addScaledVector(tmpV, -trust);      // a bigger leap is the phone losing its place, not a real move
+  camPrev.copy(xrCam.position);
+  const fresh = now - lastSeen < 150;
+  if (fresh) R.addScaledVector(Vel, dt); Vel.multiplyScalar(Math.exp(-dt * (fresh ? 3 : 20)));
+}
+function glide() {
+  if (!seen || !xrCam) return;
+  advance();
+  anchor.position.copy(xrCam.position).add(R); anchor.quaternion.copy(Q); anchor.scale.setScalar(S);
 }
 // the button at the top right: measure the card again from scratch
 function replaceAnimal() {
-  seen = false; frozen = false; samples = []; away = []; if (anchor) anchor.visible = false;
+  seen = false; frozen = false; away = []; hist = []; trust = 1; sxx = sxy = 0; if (anchor) anchor.visible = false;
   const t = $('hint'); t.textContent = 'Наведи камеру на карточку и подержи секунду'; t.hidden = false; t.classList.remove('fade');
 }
 $('replace').addEventListener('click', replaceAnimal);
