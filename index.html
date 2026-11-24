@@ -85,6 +85,11 @@ button { font-family: var(--body); }
 .player .av { font-size: 20px; }
 #namer .row2 { display: flex; gap: 10px; }
 #namer .row2 .btn { flex: 1; }
+#boot { position: fixed; inset: 0; z-index: 35; display: none; place-items: center; text-align: center; padding: 24px; background: radial-gradient(120% 80% at 50% 0%, #2f4a39 0%, #16211b 60%, #0f1713 100%); }
+#boot .box { width: min(360px, 100%); display: flex; flex-direction: column; gap: 14px; }
+#boot .icon { font-size: 48px; } #boot h2 { font-family: var(--display); font-size: 22px; margin: 0; } #boot p { margin: 0; color: var(--dusk); line-height: 1.45; }
+.boot-bar { height: 12px; border-radius: 6px; background: var(--bark); overflow: hidden; } .boot-bar i { display: block; height: 100%; width: 0; background: var(--amber); transition: width .2s; }
+#boot [hidden] { display: none; }
 #gate { position: fixed; inset: 0; z-index: 40; display: none; place-items: center; overflow-y: auto;
   padding: calc(env(safe-area-inset-top) + 16px) max(18px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 16px) max(18px, env(safe-area-inset-left));
   background: radial-gradient(120% 80% at 50% 0%, #2f4a39 0%, #16211b 60%, #0f1713 100%); }
@@ -122,6 +127,17 @@ button { font-family: var(--body); }
 <div class="top">
   <div class="chip" id="hint" hidden>Наведи камеру на карточку с кодом</div>
 </div>
+
+<section id="boot" role="status">
+  <div class="box">
+    <div class="icon" aria-hidden="true">📷</div>
+    <h2 id="boot-title">Готовлю камеру…</h2>
+    <div class="boot-bar"><i id="boot-fill"></i></div>
+    <p id="boot-text">Загружаю волшебство: 0%</p>
+    <button class="btn" id="boot-retry" type="button" hidden>Повторить</button>
+    <a class="btn ghost" href="game.html" id="boot-game" hidden>Пока пойти в заповедник</a>
+  </div>
+</section>
 
 <section id="gate" aria-labelledby="gate-title" role="dialog" aria-modal="true">
   <form class="box" id="gate-form" autocomplete="off">
@@ -169,17 +185,17 @@ button { font-family: var(--body); }
     <div class="sheet-actions">
       <a class="btn ghost" href="collection.html">Вся коллекция</a>
     </div>
-    <p class="credit">Версия 2026-11-24.1. This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
+    <p class="credit">Версия 2026-11-24.2. This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
   </div>
 </section>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1.0.0/dist/xrextras.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1.0.0/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
-<script>window.PAGE_VER = '2026-11-24.1';</script>
-<script src="profile.js?v=2026-11-24.1"></script>
-<script src="animals.js?v=2026-11-24.1"></script>
+<script src="three.min.js"></script>
+<script>window.THREE || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"><\/script>')</script>
+<script src="GLTFLoader.js"></script>
+<script>THREE.GLTFLoader || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"><\/script>')</script>
+<script>window.PAGE_VER = '2026-11-24.2';</script>
+<script src="profile.js?v=2026-11-24.2"></script>
+<script src="animals.js?v=2026-11-24.2"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 
@@ -483,7 +499,61 @@ const onxrloaded = () => {
   ]);
   XR8.run({ canvas: $('camerafeed'), allowedDevices: XR8.XrConfig.device().MOBILE });
 };
-const startXR = () => { XRExtras.Loading.showLoading({ onxrloaded }); };
+/* The AR engine is big (about 7 MB). It is kept next to this page (unmodified, see XR-LICENSE.txt); the CDN is only the spare source.
+   It starts downloading at once, while the player signs in and types the code word. A stalled download never spins for ever:
+   after 25 s without a byte the other source is tried, then the player gets a "try again" button. */
+const ENGINE = [['xrextras.js', 131921, 'https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1.0.0/dist/'], ['xr.js', 1036695, 'https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1.0.0/dist/'], ['xr-slam.js', 5538007, 'https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1.0.0/dist/']];
+const STALL_MS = 25000;
+let bootDone = 0;
+function bootShow(f) { const p = Math.min(100, Math.round(f * 100)); $('boot-fill').style.width = p + '%'; $('boot-text').textContent = 'Загружаю волшебство: ' + p + '%'; }
+async function pull(url, size, base, total) {                     // download with progress; the script tag then takes it from the cache
+  const ac = new AbortController(); let timer;
+  const arm = () => { clearTimeout(timer); timer = setTimeout(() => ac.abort(), STALL_MS); };
+  arm();
+  try {
+    const r = await fetch(url, { signal: ac.signal }); if (!r.ok) throw new Error(url + ' ' + r.status);
+    if (!r.body || !r.body.getReader) { await r.arrayBuffer(); bootShow((base + size) / total); return; }
+    const rd = r.body.getReader(); let got = 0;
+    for (;;) { const { done, value } = await rd.read(); if (done) break; arm(); got += value.length; bootShow((base + Math.min(got, size)) / total); }
+    if (got < size * 0.95) throw new Error(url + ' cut off');
+  } finally { clearTimeout(timer); }
+}
+function addScript(src, attrs) {
+  return new Promise((ok, no) => {
+    const e = document.createElement('script'); e.src = src; Object.assign(e, { onload: ok, onerror: () => { e.remove(); no(new Error(src)); } });
+    for (const k in attrs || {}) e.setAttribute(k, attrs[k]);
+    document.head.appendChild(e);
+  });
+}
+async function loadEngine() {
+  const total = ENGINE.reduce((n, e) => n + e[1], 0); let base = 0; const from = {};
+  let local = true;
+  try { local = (await fetch('xr-slam.js', { method: 'HEAD' })).ok; } catch (e) { local = false; }
+  for (const [file, size, cdn] of ENGINE) {
+    const order = local ? ['', cdn] : [cdn]; let err = null;
+    // xr.js and xr-slam.js must come from the same place
+    const fixed = file === 'xr-slam.js' ? [from['xr.js'], cdn].filter((v, i, l) => l.indexOf(v) === i) : order;
+    for (const pre of fixed) { try { await pull(pre + file, size, base, total); from[file] = pre; if (file === 'xr-slam.js') from['xr.js'] = pre; err = null; break; } catch (e) { err = e; } }
+    if (err) throw err;
+    base += size;
+  }
+  if (!window.XRExtras) await addScript(from['xrextras.js'] + 'xrextras.js');
+  if (!window.XR8) await addScript(from['xr.js'] + 'xr.js', Object.assign({ 'data-preload-chunks': 'slam' }, from['xr.js'] ? { crossorigin: 'anonymous' } : {}));
+  for (let i = 0; i < 300 && !(window.XR8 && window.XRExtras); i++) await new Promise((r) => setTimeout(r, 100));
+  if (!window.XR8 || !window.XRExtras) throw new Error('engine did not start');
+}
+let engine = loadEngine(); engine.catch(() => { /* shown in startXR */ });
+async function startXR() {
+  const b = $('boot'); b.style.display = 'grid'; $('boot-retry').hidden = $('boot-game').hidden = true; $('boot-title').textContent = 'Готовлю камеру…';
+  try { await engine; } catch (e) {
+    console.error(e); $('boot-title').textContent = 'Интернет пропал'; $('boot-text').textContent = 'Не получилось загрузить камеру. Проверь интернет и попробуй ещё раз.';
+    $('boot-retry').hidden = $('boot-game').hidden = false;
+    $('boot-retry').onclick = () => { engine = loadEngine(); engine.catch(() => {}); startXR(); };
+    return;
+  }
+  window.XR_STARTED = true; b.style.display = 'none';
+  XRExtras.Loading.showLoading({ onxrloaded });
+}
 function showPlayer(p) {
   $('player-av').textContent = p.avatar; $('player-name').textContent = p.name; $('player').hidden = false;
   owned = readCollection()[AID] || null; applyName(); fitSheet();
@@ -513,8 +583,8 @@ window.addEventListener('load', () => Profile.ensure((p) => {
   codeGate(() => targetReady.then(({ target, place }) => {
     TARGET = target; TARGET_NAME = target.name;
     if (place) PLACE = place;
-    window.XRExtras ? startXR() : window.addEventListener('xrextrasloaded', startXR, { once: true });
-  }).catch((e) => console.error('target', e)));
+    startXR();
+  }).catch((e) => { console.error('target', e); const t2 = $('hint'); t2.textContent = 'Карточка не загрузилась. Обнови страницу'; t2.hidden = false; t2.classList.remove('fade'); }));
 }));
 
 /* ================= naming ================= */
