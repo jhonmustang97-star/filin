@@ -185,7 +185,7 @@ button { font-family: var(--body); }
     <div class="sheet-actions">
       <a class="btn ghost" href="collection.html">Вся коллекция</a>
     </div>
-    <p class="credit">Версия 2026-11-24.6. This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
+    <p class="credit">Версия 2026-11-24.7. This product includes the XR Engine software developed by Niantic Spatial, Inc. <a href="https://github.com/8thwall/engine/blob/main/LICENSE">License</a></p>
   </div>
 </section>
 
@@ -193,9 +193,9 @@ button { font-family: var(--body); }
 <script>window.THREE || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"><\/script>')</script>
 <script src="GLTFLoader.js"></script>
 <script>THREE.GLTFLoader || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"><\/script>')</script>
-<script>window.PAGE_VER = '2026-11-24.6';</script>
-<script src="profile.js?v=2026-11-24.6"></script>
-<script src="animals.js?v=2026-11-24.6"></script>
+<script>window.PAGE_VER = '2026-11-24.7';</script>
+<script src="profile.js?v=2026-11-24.7"></script>
+<script src="animals.js?v=2026-11-24.7"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 // ?slam=0: the engine follows only the card, without the room around it
@@ -304,6 +304,14 @@ let PLACE = { x: 0, y: 0.01, frame: 0.4314 }, TARGET_NAME = '';
 const OWL_SCALE = A.scale;                      // size of the animal on the card (set per resident in animals.js)
 let anchor, seen = false, lastFrame = 0;
 
+// Android and iPhone load model textures in different ways by default; use the iPhone way everywhere so the picture is the same
+function sameTextures(loader) {
+  return loader.register((parser) => { parser.textureLoader = new THREE.TextureLoader(parser.options.manager); return { name: 'SAME_TEXTURES' }; });
+}
+function crisp(root, renderer) {
+  const an = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  root.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap']) if (m[k]) { m[k].anisotropy = an; m[k].needsUpdate = true; } });
+}
 function owlModule() {
   return {
     name: 'owl',
@@ -324,7 +332,7 @@ function owlModule() {
       const sun = new THREE.DirectionalLight(0xffffff, 0.9);
       sun.position.set(0.5, -0.7, 2.2);          // card space: +z points up out of the card
       sun.castShadow = true;
-      sun.shadow.mapSize.setScalar(/Android/i.test(navigator.userAgent) ? 512 : 1024);   // lighter shadows leave Android more time for tracking
+      sun.shadow.mapSize.set(1024, 1024);
       Object.assign(sun.shadow.camera, { left: -2, right: 2, top: 2, bottom: -2, near: 0.1, far: 8 });
       sun.shadow.bias = -0.002;
       anchor.add(sun); anchor.add(sun.target);
@@ -343,10 +351,11 @@ function owlModule() {
       anchor.add(stand);
 
       loadOwlBuffer().then((buf) => {
-        new THREE.GLTFLoader().parse(buf, '', (gltf) => {
+        sameTextures(new THREE.GLTFLoader()).parse(buf, '', (gltf) => {
           gltf.scene.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
           const bb = new THREE.Box3().setFromObject(gltf.scene);
           if (bb.min.y < -0.01) gltf.scene.position.y = -bb.min.y;      // perch bottom onto the card
+          crisp(gltf.scene, renderer);
           stand.add(gltf.scene);
           brain.init(gltf.scene, gltf.animations);
         }, (err) => console.error(err));
